@@ -109,6 +109,8 @@
             const [joinName, setJoinName] = useState('');
             const [claimingState, setClaimingState] = useState(null);
             const [unclaimingState, setUnclaimingState] = useState(null);
+            const [resetMapStep, setResetMapStep] = useState(0);
+            const [showResetBingoModal, setShowResetBingoModal] = useState(false);
 
             useEffect(() => {
                 try {
@@ -214,6 +216,44 @@
                 }
             };
 
+            const executeResetMap = async () => {
+                if (!appDb) return;
+                setResetMapStep(0); // Hide modal
+                
+                try {
+                    const deletePromises = Object.keys(plates).map(stateName => {
+                        const plateRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'plates', stateName);
+                        return deleteDoc(plateRef);
+                    });
+                    
+                    await Promise.all(deletePromises);
+                } catch (err) {
+                    console.error("Error resetting map", err);
+                    setError("Failed to start a new trip. Check your connection.");
+                }
+            };
+
+            const executeResetBingo = async () => {
+                if (!appDb) return;
+                setShowResetBingoModal(false); // Hide modal
+                
+                try {
+                    const updatePromises = Object.keys(players).map(uid => {
+                        const playerRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', uid);
+                        return updateDoc(playerRef, {
+                            bingoBoard: generateBingoBoard(),
+                            bingoMarks: [12],
+                            bingoClaimedAt: null
+                        });
+                    });
+                    
+                    await Promise.all(updatePromises);
+                } catch (err) {
+                    console.error("Error resetting bingo", err);
+                    setError("Failed to start a new round. Check your connection.");
+                }
+            };
+
             const handleToggleBingo = async (index) => {
                 const myPlayer = players[user.uid];
                 if (!myPlayer || !myPlayer.bingoBoard || index === 12 || !appDb) return; 
@@ -238,7 +278,6 @@
                 }
             };
 
-            // NEW: Function to reset everyone's board for a new round
             const handleResetBingo = async () => {
                 if (!appDb) return;
                 if (!window.confirm("Start a new Bingo round for everyone? This will erase all current boards.")) return;
@@ -248,12 +287,11 @@
                         const playerRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', uid);
                         return updateDoc(playerRef, {
                             bingoBoard: generateBingoBoard(),
-                            bingoMarks: [12], // Reset to just the FREE SPACE
+                            bingoMarks: [12],
                             bingoClaimedAt: null
                         });
                     });
                     
-                    // Wait for all players to be updated
                     await Promise.all(updatePromises);
                 } catch (err) {
                     console.error("Error resetting bingo", err);
@@ -382,11 +420,17 @@
                     </header>
 
                     <main className="max-w-4xl mx-auto p-4 mt-2">
-                        {gameComplete && (
-                            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-xl p-6 text-center shadow-lg mb-6 animate-bounce text-white">
+                        {gameComplete && activeTab === 'plates' && (
+                            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-xl p-6 text-center shadow-lg mb-6 animate-bounce text-white flex flex-col items-center">
                                 <span className="text-4xl block mb-2">🎉</span>
                                 <h2 className="text-2xl font-bold">All 50 States Found!</h2>
-                                <p>What an epic road trip!</p>
+                                <p className="mb-4">What an epic road trip!</p>
+                                <button 
+                                    onClick={() => setResetMapStep(1)} 
+                                    className="bg-white text-yellow-600 font-bold py-2 px-6 rounded-full text-sm shadow-md hover:bg-yellow-50 active:scale-95 transition-all"
+                                >
+                                    Start New Trip Map
+                                </button>
                             </div>
                         )}
 
@@ -428,7 +472,7 @@
                                             🎉 BINGO! {Object.values(players).filter(p => checkBingo(p.bingoMarks)).map(p => p.name).join(', ')} won! 🎉
                                         </div>
                                         <button 
-                                            onClick={handleResetBingo} 
+                                            onClick={() => setShowResetBingoModal(true)} 
                                             className="bg-white text-green-600 font-bold py-2 px-6 rounded-full text-sm shadow-md hover:bg-green-50 active:scale-95 transition-all"
                                         >
                                             Start New Round
@@ -486,6 +530,16 @@
                                         </div>
                                     </div>
                                 ))}
+                                
+                                <div className="mt-8 pt-6 border-t border-gray-700 text-center pb-4">
+                                    <button 
+                                        onClick={() => setResetMapStep(1)}
+                                        className="bg-gray-800 border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-white font-bold py-3 px-6 rounded-lg text-sm shadow-md transition-all active:scale-95"
+                                    >
+                                        ⚠️ Start Fresh (Erase Map Data)
+                                    </button>
+                                    <p className="text-xs text-gray-500 mt-2">This will erase all plates found so far.</p>
+                                </div>
                             </div>
                         )}
                             
@@ -544,6 +598,47 @@
                                 <div className="flex gap-3">
                                     <button onClick={() => setUnclaimingState(null)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
                                     <button onClick={handleUnclaimState} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors shadow-lg">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {resetMapStep > 0 && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-red-900/50 transform transition-all text-center">
+                                <span className="text-5xl block mb-4">⚠️</span>
+                                {resetMapStep === 1 ? (
+                                    <>
+                                        <h2 className="text-2xl font-black text-white mb-2">Are you sure?</h2>
+                                        <p className="text-gray-300 mb-6">This will erase all found license plates for everyone. You are about to start a brand new map.</p>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setResetMapStep(0)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
+                                            <button onClick={() => setResetMapStep(2)} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors shadow-lg">Yes, Proceed</button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h2 className="text-2xl font-black text-red-500 mb-2">Final Warning!</h2>
+                                        <p className="text-gray-300 mb-6">This action CANNOT be undone. Are you absolutely positive you want to wipe the map for everyone?</p>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setResetMapStep(0)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
+                                            <button onClick={executeResetMap} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors shadow-lg">Erase Everything</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {showResetBingoModal && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-green-900/50 transform transition-all text-center">
+                                <span className="text-5xl block mb-4">🎲</span>
+                                <h2 className="text-2xl font-black text-white mb-2">New Bingo Round?</h2>
+                                <p className="text-gray-300 mb-6">This will erase all current boards and generate brand new randomized ones for everyone.</p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowResetBingoModal(false)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
+                                    <button onClick={executeResetBingo} className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-colors shadow-lg">Start New Round</button>
                                 </div>
                             </div>
                         </div>
