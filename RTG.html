@@ -24,11 +24,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         window.FirebaseModules = {
-            initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
             getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection
         };
         
@@ -50,7 +50,7 @@
         };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-app';
-
+        
         const US_STATES = [
             "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
             "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", 
@@ -93,7 +93,7 @@
 
         function App({ firebaseModules }) {
             const { 
-                initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
+                initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
                 getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection 
             } = firebaseModules;
 
@@ -109,6 +109,8 @@
             const [joinName, setJoinName] = useState('');
             const [claimingState, setClaimingState] = useState(null);
             const [unclaimingState, setUnclaimingState] = useState(null);
+            
+            // Map Reset gets a 2-step confirmation to prevent accidents
             const [resetMapStep, setResetMapStep] = useState(0);
             const [showResetBingoModal, setShowResetBingoModal] = useState(false);
 
@@ -120,10 +122,16 @@
                     
                     setAppDb(db);
 
-                    signInAnonymously(auth).catch(err => {
-                        console.error("Auth Error:", err);
-                        setError("Failed to log in.");
-                    });
+                    const authenticate = async () => {
+                        try {
+                            // Force anonymous login directly to your custom database, ignoring the sandbox token
+                            await signInAnonymously(auth);
+                        } catch (err) {
+                            console.error("Auth Error:", err);
+                            setError("Failed to log in.");
+                        }
+                    };
+                    authenticate();
 
                     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                         setUser(currentUser);
@@ -218,14 +226,13 @@
 
             const executeResetMap = async () => {
                 if (!appDb) return;
-                setResetMapStep(0); // Hide modal
+                setResetMapStep(0); 
                 
                 try {
                     const deletePromises = Object.keys(plates).map(stateName => {
                         const plateRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'plates', stateName);
                         return deleteDoc(plateRef);
                     });
-                    
                     await Promise.all(deletePromises);
                 } catch (err) {
                     console.error("Error resetting map", err);
@@ -235,7 +242,7 @@
 
             const executeResetBingo = async () => {
                 if (!appDb) return;
-                setShowResetBingoModal(false); // Hide modal
+                setShowResetBingoModal(false); 
                 
                 try {
                     const updatePromises = Object.keys(players).map(uid => {
@@ -246,7 +253,6 @@
                             bingoClaimedAt: null
                         });
                     });
-                    
                     await Promise.all(updatePromises);
                 } catch (err) {
                     console.error("Error resetting bingo", err);
@@ -275,27 +281,6 @@
                     await updateDoc(playerDocRef, updates);
                 } catch (err) {
                     console.error("Error updating bingo", err);
-                }
-            };
-
-            const handleResetBingo = async () => {
-                if (!appDb) return;
-                if (!window.confirm("Start a new Bingo round for everyone? This will erase all current boards.")) return;
-                
-                try {
-                    const updatePromises = Object.keys(players).map(uid => {
-                        const playerRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', uid);
-                        return updateDoc(playerRef, {
-                            bingoBoard: generateBingoBoard(),
-                            bingoMarks: [12],
-                            bingoClaimedAt: null
-                        });
-                    });
-                    
-                    await Promise.all(updatePromises);
-                } catch (err) {
-                    console.error("Error resetting bingo", err);
-                    alert("Failed to start a new round. Check your connection.");
                 }
             };
 
@@ -439,21 +424,19 @@
                                 {US_STATES.map((state) => {
                                     const isFound = plates[state];
                                     const finder = isFound ? players[isFound.foundBy] : null;
-                                    const isOwner = isFound && user && isFound.foundBy === user.uid;
 
                                     return (
                                         <button
                                             key={state}
                                             onClick={() => {
                                                 if (!isFound) setClaimingState(state);
-                                                else if (isOwner) setUnclaimingState(state);
+                                                else setUnclaimingState(state);
                                             }}
-                                            disabled={isFound && !isOwner}
-                                            className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all duration-200 border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50 hover:border-white' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-700 active:scale-95'}`}
+                                            className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all duration-200 border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} border-white/50 hover:border-white text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-700 active:scale-95'}`}
                                         >
                                             <span className="font-semibold text-sm md:text-base leading-tight truncate w-full px-1">{state}</span>
                                             {isFound && <span className="text-[10px] mt-1 bg-black/30 px-2 py-0.5 rounded-full truncate max-w-[90%]">by {finder?.name || 'Someone'}</span>}
-                                            {isOwner && <span className="absolute top-1 right-1 text-[8px] bg-black/40 rounded-full w-4 h-4 flex items-center justify-center">✕</span>}
+                                            {isFound && <span className="absolute top-1 right-1 text-[8px] bg-black/40 rounded-full w-4 h-4 flex items-center justify-center">✕</span>}
                                         </button>
                                     );
                                 })}
@@ -570,6 +553,7 @@
                         )}
                     </main>
 
+                    {}
                     {claimingState && (
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                             <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-700 transform transition-all">
@@ -593,7 +577,10 @@
                                     <span className="text-5xl block mb-4">⏪</span>
                                     <h3 className="text-xl text-gray-300 mb-1">Remove claim for</h3>
                                     <h2 className="text-3xl font-black text-white">{unclaimingState}?</h2>
-                                    <p className="text-sm text-gray-400 mt-2">This will remove it from your found list so someone else can find it.</p>
+                                    <p className="text-sm text-gray-400 mt-2">
+                                        This was found by <strong className="text-white">{plates[unclaimingState] ? players[plates[unclaimingState].foundBy]?.name : 'Someone'}</strong>. 
+                                        This will remove it from the found list so anyone can find it again.
+                                    </p>
                                 </div>
                                 <div className="flex gap-3">
                                     <button onClick={() => setUnclaimingState(null)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
@@ -644,6 +631,7 @@
                         </div>
                     )}
 
+                    {}
                     <nav className="fixed bottom-0 w-full bg-gray-800 border-t border-gray-700 pb-safe z-30">
                         <div className="flex justify-around items-center h-16 max-w-4xl mx-auto px-2">
                             <button onClick={() => setActiveTab('plates')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'plates' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
@@ -664,10 +652,18 @@
             );
         }
 
-        window.addEventListener('firebase-modules-ready', () => {
+        // Check if Firebase is already loaded. If it is, start immediately. 
+        // Otherwise, wait for the signal.
+        const startReactApp = () => {
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<App firebaseModules={window.FirebaseModules} />);
-        });
+        };
+
+        if (window.FirebaseModules) {
+            startReactApp();
+        } else {
+            window.addEventListener('firebase-modules-ready', startReactApp);
+        }
     </script>
 </body>
 </html>
