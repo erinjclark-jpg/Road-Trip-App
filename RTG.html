@@ -24,11 +24,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         window.FirebaseModules = {
-            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
             getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection
         };
         
@@ -93,13 +93,11 @@
 
         function App({ firebaseModules }) {
             const { 
-                initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+                initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
                 getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection 
             } = firebaseModules;
 
             const [appDb, setAppDb] = useState(null);
-            const [appAuth, setAppAuth] = useState(null);
-
             const [user, setUser] = useState(null);
             const [players, setPlayers] = useState({});
             const [plates, setPlates] = useState({});
@@ -119,18 +117,11 @@
                     const db = getFirestore(fbApp);
                     
                     setAppDb(db);
-                    setAppAuth(auth);
 
-                    const authenticate = async () => {
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (err) {
-                            console.error("Auth Error:", err);
-                            setError("Failed to log in. Please check your Firebase settings.");
-                        }
-                    };
-
-                    authenticate();
+                    signInAnonymously(auth).catch(err => {
+                        console.error("Auth Error:", err);
+                        setError("Failed to log in.");
+                    });
 
                     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                         setUser(currentUser);
@@ -244,6 +235,29 @@
                     await updateDoc(playerDocRef, updates);
                 } catch (err) {
                     console.error("Error updating bingo", err);
+                }
+            };
+
+            // NEW: Function to reset everyone's board for a new round
+            const handleResetBingo = async () => {
+                if (!appDb) return;
+                if (!window.confirm("Start a new Bingo round for everyone? This will erase all current boards.")) return;
+                
+                try {
+                    const updatePromises = Object.keys(players).map(uid => {
+                        const playerRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', uid);
+                        return updateDoc(playerRef, {
+                            bingoBoard: generateBingoBoard(),
+                            bingoMarks: [12], // Reset to just the FREE SPACE
+                            bingoClaimedAt: null
+                        });
+                    });
+                    
+                    // Wait for all players to be updated
+                    await Promise.all(updatePromises);
+                } catch (err) {
+                    console.error("Error resetting bingo", err);
+                    alert("Failed to start a new round. Check your connection.");
                 }
             };
 
@@ -409,8 +423,16 @@
                                 </h2>
                                 
                                 {Object.values(players).some(p => checkBingo(p.bingoMarks)) && (
-                                    <div className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-xl p-3 text-center shadow-lg animate-pulse text-white font-black text-xl">
-                                        🎉 BINGO! {Object.values(players).filter(p => checkBingo(p.bingoMarks)).map(p => p.name).join(', ')} won! 🎉
+                                    <div className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-xl p-4 text-center shadow-lg text-white font-black flex flex-col items-center">
+                                        <div className="text-xl mb-3 animate-pulse">
+                                            🎉 BINGO! {Object.values(players).filter(p => checkBingo(p.bingoMarks)).map(p => p.name).join(', ')} won! 🎉
+                                        </div>
+                                        <button 
+                                            onClick={handleResetBingo} 
+                                            className="bg-white text-green-600 font-bold py-2 px-6 rounded-full text-sm shadow-md hover:bg-green-50 active:scale-95 transition-all"
+                                        >
+                                            Start New Round
+                                        </button>
                                     </div>
                                 )}
 
@@ -547,17 +569,10 @@
             );
         }
 
-        const renderApp = () => {
+        window.addEventListener('firebase-modules-ready', () => {
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<App firebaseModules={window.FirebaseModules} />);
-        };
-
-        // Check if Firebase is already loaded. If not, wait for it.
-        if (window.FirebaseModules) {
-            renderApp();
-        } else {
-            window.addEventListener('firebase-modules-ready', renderApp);
-        }
+        });
     </script>
 </body>
 </html>
