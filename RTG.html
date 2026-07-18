@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#111827">
+    <title>Road Trip Games</title>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+        .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+        button { user-select: none; -webkit-user-select: none; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen overscroll-none">
+    <div id="root"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.FirebaseModules = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection
+        };
+        
+        window.dispatchEvent(new Event('firebase-modules-ready'));
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
+            authDomain: "road-trip-games-11255.firebaseapp.com",
+            databaseURL: "https://road-trip-games-11255-default-rtdb.firebaseio.com",
+            projectId: "road-trip-games-11255",
+            storageBucket: "road-trip-games-11255.firebasestorage.app",
+            messagingSenderId: "680331500267",
+            appId: "1:680331500267:web:c3165922506da27a2bbcae",
+            measurementId: "G-1Q4CGHW5YQ"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-app';
+
+        const US_STATES = [
+            "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
+            "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", 
+            "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", 
+            "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", 
+            "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", 
+            "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", 
+            "West Virginia", "Wisconsin", "Wyoming"
+        ];
+
+        const BINGO_ITEMS = [
+            "Yellow Car", "Cow", "Police Car", "Tow Truck", "Motorcycle",
+            "Ambulance", "Dog in Car", "RV / Camper", "Tractor", "Train",
+            "Wind Turbine", "Solar Panels", "Fast Food Sign", "Bridge", "Water Tower",
+            "Traffic Cones", "Plane in Sky", "Speed Limit 70+", "Rest Stop Sign", "Horse",
+            "River or Lake", "Lawyer Billboard", "Church", "School Bus", "Semi Truck",
+            "Convertible", "Spare Tire on Back", "Boat on Trailer", "Railroad Crossing", "Tunnel"
+        ];
+
+        const generateBingoBoard = () => {
+            const shuffled = [...BINGO_ITEMS].sort(() => 0.5 - Math.random());
+            const board = shuffled.slice(0, 24);
+            board.splice(12, 0, "FREE SPACE"); 
+            return board;
+        };
+
+        const checkBingo = (marks = []) => {
+            const lines = [
+                [0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24], 
+                [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24], 
+                [0,6,12,18,24], [4,8,12,16,20] 
+            ];
+            return lines.some(line => line.every(idx => marks.includes(idx)));
+        };
+
+        const PLAYER_COLORS = [
+            'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 
+            'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'
+        ];
+
+        function App({ firebaseModules }) {
+            const { 
+                initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+                getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection 
+            } = firebaseModules;
+
+            const [appDb, setAppDb] = useState(null);
+            const [appAuth, setAppAuth] = useState(null);
+
+            const [user, setUser] = useState(null);
+            const [players, setPlayers] = useState({});
+            const [plates, setPlates] = useState({});
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState(null);
+            
+            const [activeTab, setActiveTab] = useState('plates');
+            const [showJoinModal, setShowJoinModal] = useState(false);
+            const [joinName, setJoinName] = useState('');
+            const [claimingState, setClaimingState] = useState(null);
+            const [unclaimingState, setUnclaimingState] = useState(null);
+
+            useEffect(() => {
+                try {
+                    const fbApp = initializeApp(firebaseConfig);
+                    const auth = getAuth(fbApp);
+                    const db = getFirestore(fbApp);
+                    
+                    setAppDb(db);
+                    setAppAuth(auth);
+
+                    const authenticate = async () => {
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (err) {
+                            console.error("Auth Error:", err);
+                            setError("Failed to log in. Please check your Firebase settings.");
+                        }
+                    };
+
+                    authenticate();
+
+                    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                        setUser(currentUser);
+                        if (currentUser) setIsLoading(false);
+                    });
+
+                    return () => unsubscribe();
+                } catch (err) {
+                    setError("Could not connect to database.");
+                    setIsLoading(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (!user || !appDb) return;
+
+                const playersRef = collection(appDb, 'artifacts', appId, 'public', 'data', 'players');
+                const platesRef = collection(appDb, 'artifacts', appId, 'public', 'data', 'plates');
+
+                const unsubscribePlayers = onSnapshot(playersRef, (snapshot) => {
+                    const playersData = {};
+                    snapshot.forEach(doc => { playersData[doc.id] = doc.data(); });
+                    setPlayers(playersData);
+                    
+                    if (!playersData[user.uid]) setShowJoinModal(true);
+                    else setShowJoinModal(false);
+                }, (err) => {
+                    console.error("Players Error:", err);
+                });
+
+                const unsubscribePlates = onSnapshot(platesRef, (snapshot) => {
+                    const platesData = {};
+                    snapshot.forEach(doc => { platesData[doc.id] = doc.data(); });
+                    setPlates(platesData);
+                }, (err) => {
+                    console.error("Plates Error:", err);
+                });
+
+                return () => {
+                    unsubscribePlayers();
+                    unsubscribePlates();
+                };
+            }, [user, appDb]);
+
+            useEffect(() => {
+                if (activeTab === 'bingo' && user && appDb && players[user.uid] && !players[user.uid].bingoBoard) {
+                    const newBoard = generateBingoBoard();
+                    const playerDocRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', user.uid);
+                    updateDoc(playerDocRef, { bingoBoard: newBoard, bingoMarks: [12] }).catch(console.error);
+                }
+            }, [activeTab, user, players, appDb]);
+
+            const handleJoinGame = async () => {
+                if (!joinName.trim() || !user || !appDb) return;
+                const colorIndex = Object.keys(players).length % PLAYER_COLORS.length;
+                try {
+                    const playerDocRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', user.uid);
+                    await setDoc(playerDocRef, {
+                        name: joinName.trim(),
+                        color: PLAYER_COLORS[colorIndex],
+                        joinedAt: Date.now(),
+                        bingoBoard: generateBingoBoard(),
+                        bingoMarks: [12]
+                    });
+                    setShowJoinModal(false);
+                } catch (err) {
+                    setError("Could not join game. Check database rules.");
+                }
+            };
+
+            const handleClaimState = async () => {
+                if (!claimingState || !user || !players[user.uid] || !appDb) return;
+                try {
+                    const plateDocRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'plates', claimingState);
+                    await setDoc(plateDocRef, { foundBy: user.uid, timestamp: Date.now() });
+                    setClaimingState(null);
+                } catch (err) {
+                    setError("Could not save license plate.");
+                }
+            };
+
+            const handleUnclaimState = async () => {
+                if (!unclaimingState || !user || !appDb) return;
+                try {
+                    const plateDocRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'plates', unclaimingState);
+                    await deleteDoc(plateDocRef);
+                    setUnclaimingState(null);
+                } catch (err) {
+                    setError("Could not unclaim plate.");
+                }
+            };
+
+            const handleToggleBingo = async (index) => {
+                const myPlayer = players[user.uid];
+                if (!myPlayer || !myPlayer.bingoBoard || index === 12 || !appDb) return; 
+
+                const currentMarks = myPlayer.bingoMarks || [];
+                const newMarks = currentMarks.includes(index)
+                    ? currentMarks.filter(i => i !== index)
+                    : [...currentMarks, index];
+
+                const isNowBingo = checkBingo(newMarks);
+                const wasBingo = checkBingo(currentMarks);
+                const updates = { bingoMarks: newMarks };
+                
+                if (isNowBingo && !wasBingo) updates.bingoClaimedAt = Date.now();
+                else if (!isNowBingo && wasBingo) updates.bingoClaimedAt = null; 
+
+                try {
+                    const playerDocRef = doc(appDb, 'artifacts', appId, 'public', 'data', 'players', user.uid);
+                    await updateDoc(playerDocRef, updates);
+                } catch (err) {
+                    console.error("Error updating bingo", err);
+                }
+            };
+
+            const leaderboard = useMemo(() => {
+                const scores = {};
+                Object.keys(players).forEach(uid => { scores[uid] = { ...players[uid], score: 0, uid }; });
+                Object.values(plates).forEach(plate => {
+                    if (scores[plate.foundBy]) scores[plate.foundBy].score += 1;
+                });
+                return Object.values(scores).sort((a, b) => b.score - a.score);
+            }, [players, plates]);
+
+            const activityFeed = useMemo(() => {
+                const events = Object.entries(plates).map(([stateName, data]) => ({
+                    id: `plate-${stateName}`, type: 'plate', stateName, ...data,
+                    playerName: players[data.foundBy]?.name || 'Unknown',
+                    playerColor: players[data.foundBy]?.color || 'bg-gray-500'
+                }));
+
+                Object.entries(players).forEach(([uid, player]) => {
+                    if (player.bingoClaimedAt) {
+                        events.push({
+                            id: `bingo-${uid}`, type: 'bingo', timestamp: player.bingoClaimedAt,
+                            playerName: player.name, playerColor: player.color
+                        });
+                    }
+                });
+                return events.sort((a, b) => b.timestamp - a.timestamp);
+            }, [plates, players]);
+
+            const daysRunning = useMemo(() => {
+                const playerIds = Object.keys(players);
+                if (playerIds.length === 0) return 1;
+                let oldestJoinTime = Infinity;
+                playerIds.forEach(uid => {
+                    if (players[uid].joinedAt && players[uid].joinedAt < oldestJoinTime) oldestJoinTime = players[uid].joinedAt;
+                });
+                if (oldestJoinTime === Infinity) return 1;
+                const msInDay = 1000 * 60 * 60 * 24;
+                return Math.floor((Date.now() - oldestJoinTime) / msInDay) + 1;
+            }, [players]);
+
+            const totalFound = Object.keys(plates).length;
+            const gameComplete = totalFound === 50;
+
+            if (error) {
+                return (
+                    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
+                        <div className="bg-red-900/50 border border-red-500 rounded-xl p-6 text-center max-w-md">
+                            <span className="text-4xl mb-4 block">⚠️</span>
+                            <h2 className="text-xl font-bold mb-2">Oops! Something went wrong.</h2>
+                            <p className="text-red-200">{error}</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-400 font-medium animate-pulse">Packing the trunk...</p>
+                    </div>
+                );
+            }
+
+            if (showJoinModal) {
+                return (
+                    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4 font-sans relative overflow-hidden">
+                        <div className="absolute top-10 left-10 text-6xl opacity-10 transform -rotate-12">🚗</div>
+                        <div className="absolute bottom-10 right-10 text-6xl opacity-10 transform rotate-12">🛣️</div>
+                        <div className="bg-gray-800 rounded-2xl p-8 max-w-sm w-full shadow-2xl border border-gray-700 z-10">
+                            <div className="text-center mb-6">
+                                <span className="text-5xl mb-2 block">🗺️</span>
+                                <h1 className="text-2xl font-bold text-white mb-1">Road Trip Challenge</h1>
+                                <p className="text-gray-400 text-sm">Join the family game!</p>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">What's your name?</label>
+                                    <input 
+                                        type="text" value={joinName} onChange={(e) => setJoinName(e.target.value)}
+                                        placeholder="e.g. Mom, Dad, Timmy" maxLength={20}
+                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                                    />
+                                </div>
+                                <button 
+                                    onClick={handleJoinGame} disabled={!joinName.trim()}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg active:scale-95"
+                                >
+                                    Start Playing
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-24 pt-safe">
+                    <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-20 shadow-md px-4 py-4 pt-safe">
+                        <div className="max-w-4xl mx-auto flex justify-between items-center">
+                            <div>
+                                <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>🚙</span> License Plate Hunt
+                                </h1>
+                                <p className="text-xs text-gray-400">
+                                    {totalFound}/50 States Found &bull; Day {daysRunning}
+                                </p>
+                            </div>
+                            {players[user?.uid] && (
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-full ${players[user.uid].color} flex items-center justify-center text-sm font-bold shadow-sm`}>
+                                        {players[user.uid].name.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="max-w-4xl mx-auto mt-4 bg-gray-700 h-2 rounded-full overflow-hidden">
+                            <div className="bg-blue-500 h-full transition-all duration-1000 ease-out" style={{ width: `${(totalFound / 50) * 100}%` }}></div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-4xl mx-auto p-4 mt-2">
+                        {gameComplete && (
+                            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-xl p-6 text-center shadow-lg mb-6 animate-bounce text-white">
+                                <span className="text-4xl block mb-2">🎉</span>
+                                <h2 className="text-2xl font-bold">All 50 States Found!</h2>
+                                <p>What an epic road trip!</p>
+                            </div>
+                        )}
+
+                        {activeTab === 'plates' && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                {US_STATES.map((state) => {
+                                    const isFound = plates[state];
+                                    const finder = isFound ? players[isFound.foundBy] : null;
+                                    const isOwner = isFound && user && isFound.foundBy === user.uid;
+
+                                    return (
+                                        <button
+                                            key={state}
+                                            onClick={() => {
+                                                if (!isFound) setClaimingState(state);
+                                                else if (isOwner) setUnclaimingState(state);
+                                            }}
+                                            disabled={isFound && !isOwner}
+                                            className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all duration-200 border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50 hover:border-white' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-700 active:scale-95'}`}
+                                        >
+                                            <span className="font-semibold text-sm md:text-base leading-tight truncate w-full px-1">{state}</span>
+                                            {isFound && <span className="text-[10px] mt-1 bg-black/30 px-2 py-0.5 rounded-full truncate max-w-[90%]">by {finder?.name || 'Someone'}</span>}
+                                            {isOwner && <span className="absolute top-1 right-1 text-[8px] bg-black/40 rounded-full w-4 h-4 flex items-center justify-center">✕</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {activeTab === 'bingo' && (
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-bold text-white flex justify-between items-center">
+                                    <span>Road Trip Bingo</span>
+                                </h2>
+                                
+                                {Object.values(players).some(p => checkBingo(p.bingoMarks)) && (
+                                    <div className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-xl p-3 text-center shadow-lg animate-pulse text-white font-black text-xl">
+                                        🎉 BINGO! {Object.values(players).filter(p => checkBingo(p.bingoMarks)).map(p => p.name).join(', ')} won! 🎉
+                                    </div>
+                                )}
+
+                                {players[user?.uid]?.bingoBoard ? (
+                                    <>
+                                        <div className="bg-gray-800 p-2 sm:p-4 rounded-xl border border-gray-700 shadow-inner">
+                                            <div className="grid grid-cols-5 gap-1 sm:gap-2">
+                                                {players[user.uid].bingoBoard.map((item, index) => {
+                                                    const isMarked = (players[user.uid].bingoMarks || []).includes(index);
+                                                    const isFree = index === 12;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={index} onClick={() => handleToggleBingo(index)}
+                                                            className={`relative aspect-square rounded sm:rounded-md p-1 flex items-center justify-center text-center transition-all duration-200 border-2 shadow-sm overflow-hidden ${isMarked ? `${players[user.uid].color} border-white/50 text-white scale-[0.96]` : 'bg-gray-700 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-600'} ${isFree ? 'font-black' : 'font-semibold'}`}
+                                                        >
+                                                            <span className="text-[9px] sm:text-xs leading-tight sm:leading-snug break-words hyphens-auto pointer-events-none">{item}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        <p className="text-center text-gray-400 text-sm mt-4">First to 5 in a row wins!</p>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-10 text-gray-500 animate-pulse"><p>Generating your lucky bingo board...</p></div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'leaderboard' && (
+                            <div className="space-y-3">
+                                <h2 className="text-xl font-bold mb-4 text-white">Top Spotters</h2>
+                                {leaderboard.map((player, index) => (
+                                    <div key={player.uid} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm border border-gray-700">
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-2xl w-8 text-center font-bold text-gray-500">
+                                                {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                            </div>
+                                            <div className={`w-12 h-12 rounded-full ${player.color} flex items-center justify-center text-xl font-bold shadow-inner`}>
+                                                {player.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg text-white">{player.name}</h3>
+                                                <p className="text-sm text-gray-400">UID: {player.uid.slice(0, 5)}...</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-3xl font-black text-white">{player.score}</div>
+                                            <div className="text-xs text-gray-400 uppercase tracking-wide">Plates</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                            
+                        {activeTab === 'activity' && (
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-bold mb-4 text-white">Recent Activity</h2>
+                                <div className="relative border-l-2 border-gray-700 ml-4 space-y-6 pb-4">
+                                    {activityFeed.map((event) => (
+                                        <div key={event.id} className="relative pl-6">
+                                            <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ${event.playerColor} border-2 border-gray-900`}></div>
+                                            <div className={`bg-gray-800 rounded-lg p-3 border inline-block ${event.type === 'bingo' ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'border-gray-700'}`}>
+                                                <p className="text-sm text-gray-300">
+                                                    {event.type === 'plate' ? (
+                                                        <><span className="font-bold text-white">{event.playerName}</span> spotted <span className="font-bold text-blue-400 ml-1">{event.stateName}</span>!</>
+                                                    ) : (
+                                                        <><span className="font-bold text-white">{event.playerName}</span> just got <span className="font-bold text-green-400 ml-1">BINGO</span>! 🎉</>
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(event.timestamp).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {activityFeed.length === 0 && <div className="text-center py-10 text-gray-500 pl-0"><p>The road is quiet... Start looking for plates!</p></div>}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {claimingState && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-gray-700 transform transition-all">
+                                <div className="text-center mb-6">
+                                    <span className="text-5xl block mb-4">👀</span>
+                                    <h3 className="text-xl text-gray-300 mb-1">Did you spot</h3>
+                                    <h2 className="text-3xl font-black text-white">{claimingState}?</h2>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setClaimingState(null)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
+                                    <button onClick={handleClaimState} className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors shadow-lg">Yes, claim it!</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {unclaimingState && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-red-900/50 transform transition-all">
+                                <div className="text-center mb-6">
+                                    <span className="text-5xl block mb-4">⏪</span>
+                                    <h3 className="text-xl text-gray-300 mb-1">Remove claim for</h3>
+                                    <h2 className="text-3xl font-black text-white">{unclaimingState}?</h2>
+                                    <p className="text-sm text-gray-400 mt-2">This will remove it from your found list so someone else can find it.</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setUnclaimingState(null)} className="flex-1 py-3 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors">Cancel</button>
+                                    <button onClick={handleUnclaimState} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold transition-colors shadow-lg">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <nav className="fixed bottom-0 w-full bg-gray-800 border-t border-gray-700 pb-safe z-30">
+                        <div className="flex justify-around items-center h-16 max-w-4xl mx-auto px-2">
+                            <button onClick={() => setActiveTab('plates')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'plates' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <span className="text-xl mb-1">🗺️</span><span className="text-[10px] font-bold tracking-wide">MAP</span>
+                            </button>
+                            <button onClick={() => setActiveTab('bingo')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'bingo' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <span className="text-xl mb-1">🎲</span><span className="text-[10px] font-bold tracking-wide">BINGO</span>
+                            </button>
+                            <button onClick={() => setActiveTab('leaderboard')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'leaderboard' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <span className="text-xl mb-1">🏆</span><span className="text-[10px] font-bold tracking-wide">RANK</span>
+                            </button>
+                            <button onClick={() => setActiveTab('activity')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'activity' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <span className="text-xl mb-1">📜</span><span className="text-[10px] font-bold tracking-wide">FEED</span>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            );
+        }
+
+        const renderApp = () => {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App firebaseModules={window.FirebaseModules} />);
+        };
+
+        // Check if Firebase is already loaded. If not, wait for it.
+        if (window.FirebaseModules) {
+            renderApp();
+        } else {
+            window.addEventListener('firebase-modules-ready', renderApp);
+        }
+    </script>
+</body>
+</html>
