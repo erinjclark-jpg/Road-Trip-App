@@ -119,14 +119,14 @@
         };
 
         const POI_STOPS = [
-            { id: 'poi1', localName: "Shanna's Roadside Cafe", localDesc: "Buy an amazing slice of homemade pie and support local!", localPts: 500, localGasCost: 15, corpName: "BurgerCorp Drive-Thru", corpDesc: "Eat a grey patty. Quick, but soul-crushing.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi2', localName: "Rob's Solar & Antiques", localDesc: "Fix a dashboard rattle and buy a weird lamp. Small business win!", localPts: 500, localGasCost: 15, corpName: "Mega-Mart Store", corpDesc: "Wander the fluorescent aisles looking for the restroom.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi3', localName: "Christina's Farm Stand", localDesc: "Buy fresh fruit, pet a weird goat, and tip the farmer!", localPts: 500, localGasCost: 15, corpName: "Snack-O-Sphere Corporate", corpDesc: "Buy incredibly stale and overpriced cheese puffs.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi4', localName: "Steve's Map & Guide Shop", localDesc: "Support a local guide and buy a cool handmade bumper sticker!", localPts: 500, localGasCost: 15, corpName: "Big Box Auto Store", corpDesc: "Stand in line for 20 minutes behind a guy buying one bolt.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi5', localName: "Mom & Pop's Tire Shop", localDesc: "Get a fresh set of tires from friendly mechanics who know your name.", localPts: 500, localGasCost: 15, corpName: "MegaTread Warehouse", corpDesc: "Buy plastic-wrapped tires from a kiosk. No eye contact.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi6', localName: "Grandma's Crafty Scents", localDesc: "Buy a hand-knitted lavender air freshener. Smells like heaven!", localPts: 500, localGasCost: 15, corpName: "ChemSmell Gas Station", corpDesc: "Buy a neon green pine tree that smells like a headache.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi7', localName: "High School Car Wash", localDesc: "Support the local marching band and get a sparkling clean car!", localPts: 500, localGasCost: 15, corpName: "Robo-Scrub 9000", corpDesc: "Machine scratches your paint while blasting sad elevator music.", corpPts: 50, corpGasCost: 5 },
-            { id: 'poi8', localName: "Local Indie Coffee Roaster", localDesc: "Sip a masterpiece pour-over and chat with the barista.", localPts: 500, localGasCost: 15, corpName: "CaffeineCorp Drive-Thru", corpDesc: "Lukewarm bean water served in a melting paper cup.", corpPts: 50, corpGasCost: 5 }
+            { id: 'poi1', localName: "Shanna's Roadside Cafe", localDesc: "Buy an amazing slice of homemade pie and support local!", localPts: 1000, localGasCost: 25, corpName: "BurgerCorp Drive-Thru", corpDesc: "Sell out for a grey patty and cheap soda.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi2', localName: "Rob's Solar & Antiques", localDesc: "Fix a dashboard rattle and buy a weird lamp. Small business win!", localPts: 1000, localGasCost: 25, corpName: "Mega-Mart Store", corpDesc: "Wander the fluorescent aisles. At least they have fuel additives.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi3', localName: "Christina's Farm Stand", localDesc: "Buy fresh fruit, pet a weird goat, and tip the farmer!", localPts: 1000, localGasCost: 25, corpName: "Snack-O-Sphere Corporate", corpDesc: "Buy incredibly stale cheese puffs and mass-produced gas.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi4', localName: "Steve's Map & Guide Shop", localDesc: "Support a local guide and buy a cool handmade bumper sticker!", localPts: 1000, localGasCost: 25, corpName: "Big Box Auto Store", corpDesc: "Stand in line for 20 minutes but grab cheap corporate fuel.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi5', localName: "Mom & Pop's Tire Shop", localDesc: "Get a fresh set of tires from friendly mechanics who know your name.", localPts: 1000, localGasCost: 25, corpName: "MegaTread Warehouse", corpDesc: "Buy plastic-wrapped tires from a kiosk. Free gas voucher included.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi6', localName: "Grandma's Crafty Scents", localDesc: "Buy a hand-knitted lavender air freshener. Smells like heaven!", localPts: 1000, localGasCost: 25, corpName: "ChemSmell Gas Station", corpDesc: "Neon green pine tree gives you a headache, but the gas is cheap.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi7', localName: "High School Car Wash", localDesc: "Support the local marching band and get a sparkling clean car!", localPts: 1000, localGasCost: 25, corpName: "Robo-Scrub 9000", corpDesc: "Machine scratches your paint, but sprays a splash of fuel in your tank.", corpPts: 100, corpGasCost: -20 },
+            { id: 'poi8', localName: "Local Indie Coffee Roaster", localDesc: "Sip a masterpiece pour-over and chat with the barista.", localPts: 1000, localGasCost: 25, corpName: "CaffeineCorp Drive-Thru", corpDesc: "Lukewarm bean water in a melting paper cup. Plus cheap gas.", corpPts: 100, corpGasCost: -20 }
         ];
 
         const RANDOM_EVENTS = [
@@ -148,6 +148,11 @@
         ];
 
         const DECISIONS = [
+            // Co-Driver Events
+            { id: 'codriver1', isCoDriver: true, text: "Zack is hitchhiking with his heavy luggage! Pick him up to help drive?", riskText: "Pick Him Up", safeText: "Leave Him", icon: "👍", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Zack joined! Splitting the driving duties reduces your fatigue drain." } : { success: false, msg: "NO ROOM!", effect: "lose_gas", subMsg: "His luggage didn't fit. You wasted 20 gas trying to pack it." } },
+            { id: 'codriver2', isCoDriver: true, text: "Michelle needs a ride to the next state! Add a co-driver?", riskText: "Pick Her Up", safeText: "Wave Politely", icon: "🙋‍♀️", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Michelle hopped in! More drivers means less energy loss." } : { success: false, msg: "LOST THE KEYS!", effect: "lose_gas", subMsg: "She dropped her keys under your seat. Burned gas idling." } },
+            { id: 'codriver3', isCoDriver: true, text: "Brendan is stranded at a bus stop. Offer him a seat to help drive?", riskText: "Pick Him Up", safeText: "Keep Driving", icon: "🚌", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Brendan takes the wheel! Your energy bar drains slower." } : { success: false, msg: "WRONG DIRECTION!", effect: "lose_gas", subMsg: "He made you drive three miles the wrong way first. Lost gas." } },
+
             // Points Vs Gas Dilemmas
             { id: 'pvg1', isPointsVsGas: true, icon: "🗺️", text: "The GPS says stay on the highway, but you see a dirt road that might save 10 minutes.", riskText: "Admit Defeat", safeText: "Stubbornly Commit", opt1: { pts: -300, gas: 0, msg: "DIGNITY LOST", subMsg: "Swallowed your pride and stuck to the highway. Tank is safe!" }, opt2: { pts: 0, gas: -40, msg: "STUCK IN MUD", subMsg: "Refused to ask for directions. Stuck behind a tractor!" } },
             { id: 'pvg2', isPointsVsGas: true, icon: "🎵", text: "Backseat passengers demand the aux cord to play 20 hours of terrible internet memes.", riskText: "Surrender Aux", safeText: "Fight for Control", opt1: { pts: -500, gas: 0, msg: "EARS BLEEDING", subMsg: "Your soul dies a little, but you maintain your driving speed." }, opt2: { pts: 0, gas: -25, msg: "SWERVING!", subMsg: "You swerve across the rumble strips aggressively slapping hands away!" } },
@@ -166,11 +171,8 @@
             { id: 'd3', text: "A giant tumbleweed blocks the entire highway.", riskText: "Ram It!", safeText: "Wait for Wind", icon: "💨", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Busted through! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "It was solid wood! Lost gas.", effect: "lose_gas" } },
             { id: 'd4', text: "Monkeys are throwing bananas from the trees.", riskText: "Catch Bananas", safeText: "Roll Up Windows", icon: "🐒", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Caught a golden banana! Zoom!", effect: "skip_drive" } : { success: false, msg: "Slipped on a peel! Lost gas.", effect: "lose_gas" } },
             { id: 'd5', text: "A robot traffic cop challenges you to a dance battle.", riskText: "Dance Battle!", safeText: "Ignore Him", icon: "🤖", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Busted epic moves! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "Pulled a hamstring! Lost gas.", effect: "lose_gas" } },
-            { id: 'd6', text: "Bigfoot is hitchhiking with a cardboard sign.", riskText: "Pick Him Up", safeText: "Wave Politely", icon: "🦶", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "He knows a shortcut! Massive boost!", effect: "skip_drive" } : { success: false, msg: "He smells terrible! Lost gas.", effect: "lose_gas" } },
-            { id: 'd7', text: "The road turns into a giant piano keyboard.", riskText: "Play a Song", safeText: "Drive Slowly", icon: "🎹", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Played a masterpiece! Zoom!", effect: "skip_drive" } : { success: false, msg: "Hit a sour note! Tires popped.", effect: "lose_gas" } },
             { id: 'd8', text: "A wizard asks for directions to the nearest bathroom.", riskText: "Help Wizard", safeText: "Pretend Not to Hear", icon: "🧙‍♂️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "He teleported your car forward!", effect: "skip_drive" } : { success: false, msg: "Turned map into a frog. Lost gas.", effect: "lose_gas" } },
-            { id: 'd9', text: "A portal to a candy dimension opens on the highway.", riskText: "Drive In!", safeText: "Stay on Highway", icon: "🍭", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Cotton candy roads! Huge shortcut!", effect: "skip_drive" } : { success: false, msg: "Got stuck in licorice! Lost gas.", effect: "lose_gas" } },
-            { id: 'd10', text: "A sleeping dragon is blocking the bridge ahead.", riskText: "Tickle Its Nose", safeText: "Find Detour", icon: "🐉", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "It sneezed you across! Boost!", effect: "skip_drive" } : { success: false, msg: "It woke up cranky! Lost gas.", effect: "lose_gas" } }
+            { id: 'd9', text: "A portal to a candy dimension opens on the highway.", riskText: "Drive In!", safeText: "Stay on Highway", icon: "🍭", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Cotton candy roads! Huge shortcut!", effect: "skip_drive" } : { success: false, msg: "Got stuck in licorice! Lost gas.", effect: "lose_gas" } }
         ];
 
         const STATE_DATA = {
@@ -284,14 +286,16 @@
             const [refuelTimer, setRefuelTimer] = useState(0);
             const [simulatedSpeed, setSimulatedSpeed] = useState(0);
             const [currentTime, setCurrentTime] = useState('00:00.0');
-            const [ghostPercent, setGhostPercent] = useState(null);
+            const [ghostData, setGhostData] = useState(null);
             const [confirmQuit, setConfirmQuit] = useState(false);
             
-            // Radio & Overheat State
+            // Radio, Fatigue & Overheat State
             const [overheat, setOverheat] = useState(0);
             const [isOverheated, setIsOverheated] = useState(false);
             const [lastTapTime, setLastTapTime] = useState(0);
             const [radioStationIdx, setRadioStationIdx] = useState(0);
+            const [driverEnergy, setDriverEnergy] = useState(100);
+            const [coDrivers, setCoDrivers] = useState(0);
             const audioRef = useRef(null);
             
             // Rally Encounter State
@@ -306,6 +310,10 @@
             const [hasFacedPoi, setHasFacedPoi] = useState(false);
             const [activePoi, setActivePoi] = useState(null);
             
+            // Food Economy State
+            const [hasFacedFood, setHasFacedFood] = useState(false);
+            const [illnessCountdown, setIllnessCountdown] = useState(null);
+
             // Rally Checkpoint States (Trivia, Reaction, Memory)
             const [activeTrivia, setActiveTrivia] = useState(null);
             const [triviaStep, setTriviaStep] = useState(0); 
@@ -385,11 +393,15 @@
                         setHasFacedDecision(false);
                         setHasFacedRandomEvent(false);
                         setHasFacedPoi(false);
+                        setHasFacedFood(false);
                         setUsedDecisions([]);
                         setUsedEvents([]);
                         setGasLevel(v.gasTank);
                         setOverheat(0);
                         setIsOverheated(false);
+                        setDriverEnergy(100);
+                        setCoDrivers(0);
+                        setIllnessCountdown(null);
                         setLastTapTime(0);
                     }
                 } else if (status !== 'lobby') {
@@ -414,9 +426,9 @@
 
                     if (bestRun && !me.raceState.finishTime) {
                         const percent = Math.min(100, (elapsedMs / bestRun.timeMs) * 100);
-                        setGhostPercent(percent);
+                        setGhostData({ percent, name: bestRun.name });
                     } else if (!bestRun) {
-                        setGhostPercent(null);
+                        setGhostData(null);
                     }
                 }, 100);
                 return () => clearInterval(interval);
@@ -460,14 +472,20 @@
                 }
             }, [radioStationIdx]);
 
+            // Generic penalty/wait timer logic
             useEffect(() => {
                 let timer;
-                if (status === 'out_of_gas' || status === 'refueling') {
+                if (status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom') {
                     if (refuelTimer > 0) {
                         timer = setTimeout(() => setRefuelTimer(prev => prev - 1), 1000);
                     } else {
-                        const v = VEHICLES[players[user?.uid]?.vehicleId || 'prius'] || VEHICLES['prius'];
-                        setGasLevel(v.gasTank);
+                        if (status === 'out_of_gas' || status === 'refueling') {
+                            const v = VEHICLES[players[user?.uid]?.vehicleId || 'prius'] || VEHICLES['prius'];
+                            setGasLevel(v.gasTank);
+                        }
+                        if (status === 'sleeping') {
+                            setDriverEnergy(100);
+                        }
                         setStatus(returnStatus);
                     }
                 } else if (status === 'random_event') {
@@ -499,7 +517,7 @@
                         uid: user.uid, name: joinName.trim(), vehicleId: localVehicle,
                         color: PLAYER_COLORS[colorIndex], joinedAt: Date.now(),
                         bingoBoard: generateBingoBoard(), bingoMarks: [12], plateWins: 0,
-                        raceState: { startTime: null, finishTime: null, checkpoint: 0, routeId: null, score: 0 }
+                        raceState: { startTime: null, finishTime: null, checkpoint: 0, routeId: null, score: 0, timeBonus: 0, passedThreshold: false }
                     });
                 } catch (err) { console.error(err); }
                 setIsJoining(false);
@@ -514,7 +532,9 @@
                         'raceState.startTime': Date.now(),
                         'raceState.finishTime': null,
                         'raceState.checkpoint': 0,
-                        'raceState.score': 0
+                        'raceState.score': 0,
+                        'raceState.timeBonus': 0,
+                        'raceState.passedThreshold': false
                     });
                     setStatus('driving');
                 } catch(e) { console.error(e); }
@@ -524,7 +544,7 @@
                 if (!user || !appDb) return;
                 try {
                     await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 
-                        'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0, 'raceState.routeId': null, 'raceState.score': 0
+                        'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0, 'raceState.routeId': null, 'raceState.score': 0, 'raceState.timeBonus': 0, 'raceState.passedThreshold': false
                     });
                     setConfirmQuit(false);
                     setStatus('lobby');
@@ -542,7 +562,19 @@
                     const updates = { 'raceState.checkpoint': nextCheckpoint };
                     if (isFinished) {
                         const finishTime = Date.now();
+                        const timeMs = finishTime - me.raceState.startTime;
+                        const parTime = 300000; // 5 minutes in milliseconds
+                        const timeBonus = Math.max(0, Math.floor((parTime - timeMs) / 1000) * 20); // 20 points per second under par
+                        
+                        const baseScore = me.raceState.score || 0;
+                        const finalScore = baseScore + timeBonus;
+                        const passedThreshold = finalScore >= 15000; // 15k point minimum to win
+
                         updates['raceState.finishTime'] = finishTime;
+                        updates['raceState.score'] = finalScore;
+                        updates['raceState.timeBonus'] = timeBonus;
+                        updates['raceState.passedThreshold'] = passedThreshold;
+                        
                         setStatus('finished');
                         
                         const runRef = doc(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'run_times'));
@@ -551,8 +583,9 @@
                             name: me.name,
                             vehicleId: me.vehicleId,
                             routeId: me.raceState.routeId,
-                            timeMs: finishTime - me.raceState.startTime,
-                            score: me.raceState.score || 0,
+                            timeMs: timeMs,
+                            score: finalScore,
+                            passedThreshold: passedThreshold,
                             timestamp: finishTime
                         });
                     } else {
@@ -560,6 +593,8 @@
                         setHasFacedDecision(false);
                         setHasFacedRandomEvent(false);
                         setHasFacedPoi(false);
+                        setHasFacedFood(false);
+                        setIllnessCountdown(null);
                     }
                     await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), updates);
                 } catch (e) {}
@@ -576,7 +611,7 @@
                 const tapSpeed = now - (lastTapTime || now - 1000);
                 setLastTapTime(now);
 
-                // Overheat logic: tapping faster than 250ms increases heat rapidly
+                // Overheat logic
                 let newHeat = overheat;
                 if (tapSpeed < 250) {
                     newHeat = Math.min(100, overheat + 12);
@@ -590,6 +625,29 @@
                     return;
                 }
                 setOverheat(newHeat);
+
+                // Driver Energy (Fatigue) Logic
+                const energyDrain = 2.5 / (1 + coDrivers); // Co-drivers split the work
+                const newEnergy = Math.max(0, driverEnergy - energyDrain);
+                setDriverEnergy(newEnergy);
+
+                if (newEnergy <= 0) {
+                    setReturnStatus('driving');
+                    setRefuelTimer(10); // 10 second nap
+                    setStatus('sleeping');
+                    return;
+                }
+
+                // Illness Countdown Check
+                if (illnessCountdown !== null) {
+                    if (illnessCountdown <= 1) {
+                        setIllnessCountdown(null);
+                        setStatus('illness_event');
+                        return;
+                    } else {
+                        setIllnessCountdown(prev => prev - 1);
+                    }
+                }
 
                 let progressGain = 1;
                 let gasCost = 2;
@@ -615,7 +673,6 @@
                     if (hasFacedMaga) {
                         availableDecisions = availableDecisions.filter(d => !d.isMaga);
                     } else if ((me.raceState?.checkpoint || 0) >= 2) {
-                        // Force a MAGA encounter if they haven't seen one yet and have reached state #3
                         const magaDecisions = availableDecisions.filter(d => d.isMaga);
                         if (magaDecisions.length > 0) {
                             availableDecisions = magaDecisions;
@@ -654,6 +711,13 @@
                     return;
                 }
 
+                const foodPoint = Math.floor(requiredTaps * 0.85);
+                if (driveProgress + progressGain >= foodPoint && !hasFacedFood && driveProgress < foodPoint) {
+                    setStatus('food_stop');
+                    setHasFacedFood(true);
+                    return;
+                }
+
                 if (driveProgress + progressGain >= requiredTaps) {
                     triggerCheckpointChallenge(route.states[me.raceState?.checkpoint || 0]);
                 } else {
@@ -672,7 +736,7 @@
                 if (activeDecision.isPointsVsGas) {
                     const choice = isRisk ? activeDecision.opt1 : activeDecision.opt2;
                     const newScore = currentScore + choice.pts;
-                    newGas = Math.max(0, gasLevel + choice.gas);
+                    newGas = Math.min(v.gasTank, Math.max(0, gasLevel + choice.gas));
                     
                     setDecisionResultData({ 
                         msg: choice.msg, 
@@ -682,23 +746,14 @@
                     
                     setGasLevel(newGas);
                     if (choice.pts !== 0) {
-                        try {
-                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                                'raceState.score': newScore
-                            });
-                        } catch(e){}
+                        try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': newScore }); } catch(e){}
                     }
                     
                     setStatus('decisionResult');
                     setTimeout(() => {
                         setDecisionResultData(null);
-                        if (newGas <= 0) {
-                            setReturnStatus('driving');
-                            setRefuelTimer(15);
-                            setStatus('out_of_gas');
-                        } else {
-                            setStatus('driving');
-                        }
+                        if (newGas <= 0) { setReturnStatus('driving'); setRefuelTimer(15); setStatus('out_of_gas'); } 
+                        else { setStatus('driving'); }
                     }, 3500);
                     return;
                 }
@@ -706,7 +761,7 @@
                 if (!isRisk) {
                     setDecisionResultData({ 
                         msg: "PLAYED IT SAFE!", 
-                        subMsg: activeDecision.isMaga ? "You nodded slowly and avoided eye contact. Boring, but safe." : "Boring, but you didn't risk your gas.",
+                        subMsg: activeDecision.isMaga ? "You nodded slowly and avoided eye contact. Boring, but safe." : activeDecision.isCoDriver ? "They can catch the next bus. Your loss." : "Boring, but you didn't risk your gas.",
                         color: "text-gray-400" 
                     });
                 } else {
@@ -718,13 +773,13 @@
                     });
                     
                     if (result.success) {
-                        const progressBoost = Math.floor(v.driveTaps * 0.40);
-                        setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
-                        try {
-                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                                'raceState.score': currentScore + 200
-                            });
-                        } catch(e){}
+                        if (result.effect === 'add_codriver') {
+                            setCoDrivers(prev => prev + 1);
+                        } else {
+                            const progressBoost = Math.floor(v.driveTaps * 0.40);
+                            setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
+                        }
+                        try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': currentScore + 200 }); } catch(e){}
                     } else {
                         if (result.effect === 'lose_gas') {
                             const penalty = Math.floor(v.gasTank * 0.30 * (v.handling || 1));
@@ -738,63 +793,141 @@
                 
                 setTimeout(() => {
                     setDecisionResultData(null);
-                    if (newGas <= 0) {
-                        setReturnStatus('driving');
-                        setRefuelTimer(15);
-                        setStatus('out_of_gas');
-                    } else {
-                        setStatus('driving');
-                    }
+                    if (newGas <= 0) { setReturnStatus('driving'); setRefuelTimer(15); setStatus('out_of_gas'); } 
+                    else { setStatus('driving'); }
                 }, 3000);
             };
 
             const handlePoiDecision = async (choice) => {
                 if (status !== 'poi') return;
                 const me = players[user?.uid] || {};
+                const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
                 let pointsGained = 0;
                 let gasCost = 0;
                 let msg = "";
+                let subMsg = "";
+                let msgColor = "";
 
                 if (choice === 'local') {
                     pointsGained = activePoi.localPts;
                     gasCost = activePoi.localGasCost;
-                    msg = "Supported Small Business! +500 PTS";
+                    msg = "Supported Small Business!";
+                    subMsg = `+${pointsGained} PTS | Lost ${gasCost} Gas`;
+                    msgColor = "text-green-400";
                 } else if (choice === 'corp') {
                     pointsGained = activePoi.corpPts;
-                    gasCost = activePoi.corpGasCost;
-                    msg = "Corporate stop. It was fine. +50 PTS";
+                    gasCost = activePoi.corpGasCost; // this is a negative number, effectively adding gas
+                    msg = "Sold your soul for gas!";
+                    subMsg = `+${pointsGained} PTS | Gained ${Math.abs(gasCost)} Gas`;
+                    msgColor = "text-yellow-400";
                 } else {
-                    msg = "Skipped the stop. Kept the momentum going!";
+                    msg = "Skipped the stop.";
+                    subMsg = "Kept the momentum going! No points or gas changes.";
+                    msgColor = "text-gray-400";
                 }
 
-                const newGas = Math.max(0, gasLevel - gasCost);
+                const newGas = Math.min(v.gasTank, Math.max(0, gasLevel - gasCost));
                 setGasLevel(newGas);
 
                 if (pointsGained > 0) {
-                    try {
-                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                            'raceState.score': (me.raceState?.score || 0) + pointsGained
-                        });
-                    } catch(e){}
+                    try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': (me.raceState?.score || 0) + pointsGained }); } catch(e){}
                 }
 
-                setDecisionResultData({
-                    msg: msg,
-                    subMsg: choice === 'skip' ? "Saved gas, but earned no points." : `Lost ${gasCost} gas.`,
-                    color: choice === 'local' ? "text-green-400" : choice === 'corp' ? "text-yellow-400" : "text-gray-400"
-                });
+                setDecisionResultData({ msg: msg, subMsg: subMsg, color: msgColor });
                 setStatus('decisionResult');
 
                 setTimeout(() => {
                     setDecisionResultData(null);
-                    if (newGas <= 0) {
+                    if (newGas <= 0) { setReturnStatus('driving'); setRefuelTimer(15); setStatus('out_of_gas'); } 
+                    else { setStatus('driving'); }
+                }, 3000);
+            };
+
+            const handleFoodDecision = async (choice) => {
+                const people = 1 + coDrivers;
+                let costPts = 0;
+                let waitTime = 0;
+                let energyRestore = 0;
+                let riskChance = 0;
+                let msg = "";
+
+                if (choice === 'diner') {
+                    costPts = 400 * people;
+                    waitTime = 8 * people;
+                    energyRestore = 100;
+                    riskChance = 0;
+                    msg = "Delicious local food! Completely safe and fully refreshed.";
+                } else if (choice === 'fastfood') {
+                    costPts = 150 * people;
+                    waitTime = 4 * people;
+                    energyRestore = 50;
+                    riskChance = 0.15;
+                    msg = "Greasy burgers. Fast and cheap, but your stomach is rumbling.";
+                } else if (choice === 'burrito') {
+                    costPts = 25 * people;
+                    waitTime = 2 * people;
+                    energyRestore = 20;
+                    riskChance = 0.40;
+                    msg = "Suspect gas station burrito consumed. God help you.";
+                }
+
+                const me = players[user?.uid] || {};
+                const newScore = (me.raceState?.score || 0) - costPts;
+                
+                try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': newScore }); } catch(e){}
+
+                setDriverEnergy(prev => Math.min(100, prev + energyRestore));
+                
+                if (Math.random() < riskChance) {
+                    setIllnessCountdown(Math.floor(Math.random() * 10) + 10); // 10 to 20 taps later
+                }
+
+                setDecisionResultData({ msg: "PAID THE BILL!", subMsg: msg, color: "text-green-400" });
+                setStatus('decisionResult');
+
+                setTimeout(() => {
+                    setDecisionResultData(null);
+                    setReturnStatus('driving');
+                    setRefuelTimer(waitTime);
+                    setStatus('eating');
+                }, 2500);
+            };
+
+            const handleIllnessDecision = async (isRisk) => {
+                const me = players[user?.uid] || {};
+                let currentScore = me.raceState?.score || 0;
+                
+                if (!isRisk) { 
+                    try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': currentScore - 200 }); } catch(e){}
+                    setDecisionResultData({ msg: "DIGGING A HOLE", subMsg: "Humiliating. Lost 200 Pts and a 15-second penalty.", color: "text-orange-400" });
+                    setStatus('decisionResult');
+                    setTimeout(() => {
+                        setDecisionResultData(null);
                         setReturnStatus('driving');
                         setRefuelTimer(15);
-                        setStatus('out_of_gas');
+                        setStatus('bathroom');
+                    }, 3000);
+                } else { 
+                    const success = Math.random() > 0.5;
+                    if (success) {
+                        setDecisionResultData({ msg: "MADE IT!", subMsg: "Found a clean porta-potty! No points lost!", color: "text-green-400" });
+                        setStatus('decisionResult');
+                        setTimeout(() => {
+                            setDecisionResultData(null);
+                            setStatus('driving');
+                        }, 3000);
                     } else {
-                        setStatus('driving');
+                        try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 'raceState.score': currentScore - 500 }); } catch(e){}
+                        setDecisionResultData({ msg: "NO TOILET PAPER!", subMsg: "Absolute disaster. Lost 500 Pts and a 30-second penalty.", color: "text-red-500" });
+                        setStatus('decisionResult');
+                        setTimeout(() => {
+                            setDecisionResultData(null);
+                            setReturnStatus('driving');
+                            setRefuelTimer(30);
+                            setStatus('bathroom');
+                        }, 3500);
                     }
-                }, 3000);
+                }
             };
 
             const triggerCheckpointChallenge = (stateAbbr) => {
@@ -1180,6 +1313,16 @@
                                         <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10 m-auto">
                                             <h3 className="text-2xl font-black text-white mb-4 text-center uppercase tracking-widest">Pre-Race Setup</h3>
                                             
+                                            <div className="mb-6 bg-gray-900 border-2 border-blue-900 rounded-xl p-4 shadow-inner">
+                                                <h4 className="text-blue-400 font-black text-sm uppercase tracking-widest mb-2 flex items-center gap-2"><span>📋</span> How To Play</h4>
+                                                <ul className="text-xs text-gray-300 space-y-2 font-semibold">
+                                                    <li><span className="text-yellow-400 font-black">GOAL:</span> Earn 15,000 Pts to secure a Victory! Speed breaks ties and grants a time bonus.</li>
+                                                    <li><span className="text-green-400 font-black">DRIVING:</span> Tap GAS to move. Don't tap too fast or your engine will OVERHEAT.</li>
+                                                    <li><span className="text-purple-400 font-black">CHOICES:</span> You will face crazy dilemmas. Will you sacrifice gas for points? Out of gas = 15s penalty.</li>
+                                                    <li><span className="text-blue-400 font-black">STOPS:</span> Support small businesses for massive points, or sell out to corporate chains for cheap gas.</li>
+                                                </ul>
+                                            </div>
+
                                             <div className="mb-6">
                                                 <label className="block text-xs text-gray-400 font-bold mb-2 uppercase tracking-widest">1. Select Vehicle</label>
                                                 <div className="flex overflow-x-auto gap-3 pb-2 snap-x">
@@ -1214,13 +1357,31 @@
                                         </div>
                                     ) : status === 'finished' ? (
                                         <div className="w-full max-w-sm space-y-4 relative z-10 m-auto">
-                                            <div className="bg-gray-800 rounded-2xl p-6 border-2 border-cyan-700 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center">
+                                            <div className={`bg-gray-800 rounded-2xl p-6 border-4 shadow-2xl text-center ${me.raceState?.passedThreshold ? 'border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]' : 'border-red-600 shadow-[0_0_30px_rgba(220,38,38,0.4)]'}`}>
                                                 <div className="text-5xl mb-2">🏁</div>
-                                                <h3 className="text-xl sm:text-2xl font-black text-white">ROUTE COMPLETE!</h3>
-                                                <div className="text-2xl sm:text-3xl font-black text-green-400 mt-2">⭐ {me.raceState?.score || 0} PTS</div>
-                                                <div className="text-xl sm:text-2xl font-mono font-black text-cyan-400 mt-2">{currentTime}</div>
+                                                <h3 className="text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-widest">{me.raceState?.passedThreshold ? 'VICTORY!' : 'MORAL DEFEAT'}</h3>
+                                                <p className="text-xs text-gray-400 font-bold mb-6">
+                                                    {me.raceState?.passedThreshold ? 'You crushed the route with dignity and speed.' : 'You crossed the finish line, but sold your soul along the way. (Requires 15,000 Pts)'}
+                                                </p>
+                                                
+                                                <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-left space-y-2 mb-6">
+                                                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                                                        <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Base Score</span>
+                                                        <span className="text-white font-black">{me.raceState?.score - (me.raceState?.timeBonus || 0)} Pts</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                                                        <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Time Bonus</span>
+                                                        <span className="text-cyan-400 font-black">+{me.raceState?.timeBonus || 0} Pts</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-2">
+                                                        <span className="text-yellow-500 text-sm font-black uppercase tracking-widest">Final Total</span>
+                                                        <span className="text-yellow-400 font-black text-xl">{me.raceState?.score || 0} Pts</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="text-xl sm:text-2xl font-mono font-black text-cyan-400">{currentTime}</div>
                                             </div>
-                                            <button onClick={executeDropOut} className="w-full bg-gray-800 text-gray-300 text-sm font-bold py-3 rounded-xl border border-gray-600 active:scale-95">Return to Garage</button>
+                                            <button onClick={executeDropOut} className="w-full bg-gray-800 text-gray-300 text-sm font-bold py-4 rounded-xl border border-gray-600 active:scale-95 uppercase tracking-widest">Return to Garage</button>
                                         </div>
                                     ) : (
                                         <React.Fragment>
@@ -1236,7 +1397,7 @@
                                                 </div>
                                             )}
                                             
-                                            {/* Tachometer / Radio Console */}
+                                            {/* Tachometer / Gauges / Radio Console */}
                                             <div className="w-full bg-black/60 rounded-3xl border-4 border-gray-800 p-4 flex flex-col items-center justify-center relative shadow-inner overflow-hidden shrink-0 z-10">
                                                 {/* Radio Console */}
                                                 <div className="flex items-center gap-4 mb-4">
@@ -1248,11 +1409,24 @@
                                                     </button>
                                                 </div>
                                                 
-                                                {/* RPM / Overheat Gauge */}
-                                                <div className="w-full max-w-[250px] h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
-                                                    <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
+                                                {/* Dash Gauges */}
+                                                <div className="flex gap-4 w-full max-w-[300px]">
+                                                    {/* Overheat Gauge */}
+                                                    <div className="flex-1 flex flex-col items-center">
+                                                        <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                                                            <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
+                                                        </div>
+                                                        <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENGINE TEMP</div>
+                                                    </div>
+                                                    
+                                                    {/* Fatigue/Energy Gauge */}
+                                                    <div className="flex-1 flex flex-col items-center">
+                                                        <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                                                            <div className={`h-full transition-all duration-75 ${driverEnergy < 25 ? 'bg-red-600 animate-pulse' : 'bg-blue-500'}`} style={{width: `${driverEnergy}%`}}></div>
+                                                        </div>
+                                                        <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENERGY {coDrivers > 0 && <span className="text-yellow-400">({coDrivers + 1} PPL)</span>}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="text-[10px] mt-2 font-black tracking-widest uppercase text-gray-400">{isOverheated ? <span className="text-red-500">ENGINE OVERHEATED</span> : 'ENGINE TEMP'}</div>
                                             </div>
 
                                             {/* GPS Map Area - Larger and flex-growing */}
@@ -1271,8 +1445,11 @@
                                                 <div className="relative h-2 bg-gray-800 rounded-full mb-10 mx-2 mt-auto z-10 shrink-0">
                                                     <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
                                                     
-                                                    {ghostPercent !== null && (
-                                                        <div className="absolute top-[-20px] text-xl z-20 transition-all duration-100 opacity-60" style={{left: `calc(${ghostPercent}% - 12px)`}}>👻</div>
+                                                    {ghostData !== null && (
+                                                        <div className="absolute top-[-25px] z-20 transition-all duration-100 flex flex-col items-center" style={{left: `calc(${ghostData.percent}% - 12px)`}}>
+                                                            <span className="text-[8px] bg-black/60 text-white px-1 rounded mb-0.5 truncate max-w-[40px] shadow-sm font-bold">{ghostData.name}</span>
+                                                            <span className="text-xl opacity-60">👻</span>
+                                                        </div>
                                                     )}
 
                                                     <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-1.5">
@@ -1314,6 +1491,50 @@
                                             </div>
 
                                             {/* ALERTS / OVERLAYS */}
+                                            {status === 'food_stop' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-orange-900/95 backdrop-blur-md rounded-2xl border-2 border-orange-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl sm:text-5xl mb-2 shrink-0">🍔</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-1 leading-tight">Food Stop!</h3>
+                                                    <p className="text-orange-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Feeding {coDrivers + 1} People</p>
+                                                    
+                                                    <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
+                                                        <button onClick={() => handleFoodDecision('diner')} className="w-full bg-green-600 border-b-4 border-green-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">Sit-Down Diner</span>
+                                                            <span className="text-xs text-green-200 mt-1">Safe. Restores 100% Energy.</span>
+                                                            <span className="text-[10px] font-bold text-green-100 mt-1 bg-green-800/50 px-2 py-0.5 rounded-full">-{400 * (1 + coDrivers)} PTS | {8 * (1 + coDrivers)} SEC</span>
+                                                        </button>
+                                                        <button onClick={() => handleFoodDecision('fastfood')} className="w-full bg-yellow-600 border-b-4 border-yellow-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">Fast Food Drive-Thru</span>
+                                                            <span className="text-xs text-yellow-200 mt-1">Restores 50% Energy. 15% chance of illness.</span>
+                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">-{150 * (1 + coDrivers)} PTS | {4 * (1 + coDrivers)} SEC</span>
+                                                        </button>
+                                                        <button onClick={() => handleFoodDecision('burrito')} className="w-full bg-red-600 border-b-4 border-red-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center mt-2">
+                                                            <span className="font-black text-white text-sm sm:text-base">Gas Station Burrito</span>
+                                                            <span className="text-xs text-red-200 mt-1">Restores 20% Energy. 40% chance of illness.</span>
+                                                            <span className="text-[10px] font-bold text-red-100 mt-1 bg-red-800/50 px-2 py-0.5 rounded-full">-{25 * (1 + coDrivers)} PTS | {2 * (1 + coDrivers)} SEC</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {status === 'illness_event' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-red-900/95 backdrop-blur-md rounded-2xl border-2 border-red-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl sm:text-5xl mb-2 shrink-0 animate-pulse">🚽</div>
+                                                    <h3 className="text-base sm:text-lg font-black text-white mb-2 leading-tight">THE BURRITO STRIKES!</h3>
+                                                    <p className="text-red-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Emergency Bathroom Break</p>
+                                                    <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
+                                                        <button onClick={() => handleIllnessDecision(false)} className="w-full bg-orange-700 border-b-4 border-orange-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base flex flex-col items-center">
+                                                            <span>Dig a Hole on the Side of the Road</span>
+                                                            <span className="text-[10px] font-bold text-orange-200 mt-1">Safe but humiliating. -200 Pts & 15s Delay.</span>
+                                                        </button>
+                                                        <button onClick={() => handleIllnessDecision(true)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base flex flex-col items-center">
+                                                            <span>Risk the Porta-Potty</span>
+                                                            <span className="text-[10px] font-bold text-gray-300 mt-1">50% chance of NO TOILET PAPER disaster.</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {status === 'poi' && activePoi && (
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🏪</div>
@@ -1328,7 +1549,7 @@
                                                         <button onClick={() => handlePoiDecision('corp')} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                             <span className="font-black text-white text-sm sm:text-base">{activePoi.corpName}</span>
                                                             <span className="text-xs text-gray-300 mt-1">{activePoi.corpDesc}</span>
-                                                            <span className="text-[10px] font-bold text-gray-200 mt-1 bg-gray-800/50 px-2 py-0.5 rounded-full">+{activePoi.corpPts} PTS | -{activePoi.corpGasCost} GAS</span>
+                                                            <span className="text-[10px] font-bold text-gray-200 mt-1 bg-gray-800/50 px-2 py-0.5 rounded-full">+{activePoi.corpPts} PTS | +{Math.abs(activePoi.corpGasCost)} GAS</span>
                                                         </button>
                                                         <button onClick={() => handlePoiDecision('skip')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg flex flex-col items-center mt-2">
                                                             <span className="font-black text-white text-xs">Keep Driving (Skip)</span>
@@ -1342,7 +1563,7 @@
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">{activeDecision.icon}</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activeDecision.text}</h3>
                                                     <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">
-                                                        {activeDecision.isMaga ? "CONSPIRACY CHECKPOINT!" : "Silly Situation!"}
+                                                        {activeDecision.isMaga ? "CONSPIRACY CHECKPOINT!" : activeDecision.isCoDriver ? "HITCHHIKER EVENT!" : "Silly Situation!"}
                                                     </p>
                                                     <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
                                                         <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base">
@@ -1374,11 +1595,13 @@
                                                 </div>
                                             )}
 
-                                            {(status === 'out_of_gas' || status === 'refueling') && (
-                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-red-900 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50">
-                                                    <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">⛽</div>
+                                            {(status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom') && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50 border-red-900">
+                                                    <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">
+                                                        {status === 'sleeping' ? '😴' : status === 'eating' ? '🍔' : status === 'bathroom' ? '🚽' : '⛽'}
+                                                    </div>
                                                     <div className={`text-lg sm:text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : 'text-yellow-400'}`}>
-                                                        {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : 'PUMPING GAS...'}
+                                                        {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : status === 'refueling' ? 'PUMPING GAS...' : status === 'sleeping' ? 'PULLED OVER TO NAP' : status === 'eating' ? 'CHOWING DOWN...' : 'BATHROOM EMERGENCY!'}
                                                     </div>
                                                     <div className="text-5xl sm:text-6xl font-mono font-black text-white py-4 tabular-nums shrink-0">
                                                         00:{String(refuelTimer).padStart(2, '0')}
@@ -1489,7 +1712,7 @@
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : (status === 'decision' || status === 'random_event' || status === 'poi') ? (
+                                    ) : (status === 'decision' || status === 'random_event' || status === 'poi' || status === 'food_stop' || status === 'illness_event') ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                             <div className="text-purple-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
                                             <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Pedals Locked. Check Screen!</div>
