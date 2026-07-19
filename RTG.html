@@ -65,7 +65,6 @@
         const APP_ID = 'family-road-trip-unified';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // BINGO & PLATES DATA
         const US_STATES = [
             "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
             "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", 
@@ -75,6 +74,7 @@
             "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", 
             "West Virginia", "Wisconsin", "Wyoming"
         ];
+        
         const BINGO_ITEMS = [
             "Yellow Car", "Cow", "Police Car", "Tow Truck", "Motorcycle", "Ambulance", "Dog in Car", "RV / Camper", 
             "Tractor", "Train", "Wind Turbine", "Solar Panels", "Fast Food Sign", "Bridge", "Water Tower",
@@ -82,6 +82,7 @@
             "Lawyer Billboard", "Church", "School Bus", "Semi Truck", "Convertible", "Spare Tire on Back", 
             "Boat on Trailer", "Railroad Crossing", "Tunnel"
         ];
+        
         const generateBingoBoard = () => {
             const shuffled = [...BINGO_ITEMS].sort(() => 0.5 - Math.random());
             const board = shuffled.slice(0, 24);
@@ -90,7 +91,6 @@
         };
         const PLAYER_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'];
 
-        // RALLY GAME DATA
         const ROUTES = {
             northern: { id: 'northern', name: 'Northern Tier', icon: '🌲', states: ['WA', 'OR', 'ID', 'MT', 'WY', 'ND', 'SD', 'MN', 'WI', 'MI'] },
             central: { id: 'central', name: 'Route 66 Express', icon: '🏜️', states: ['CA', 'NV', 'UT', 'CO', 'NE', 'KS', 'IA', 'MO', 'IL', 'IN'] },
@@ -225,7 +225,6 @@
             
             // Unified UI State
             const [activeTab, setActiveTab] = useState('rally');
-            const [showJoinModal, setShowJoinModal] = useState(false);
             const [joinName, setJoinName] = useState('');
             const [selectedVehicle, setSelectedVehicle] = useState('prius');
             const [isJoining, setIsJoining] = useState(false);
@@ -265,6 +264,7 @@
                 const authenticate = async () => {
                     try {
                         if (initialAuthToken) {
+                            // If the preview token is expired/invalid, gracefully fallback to anonymous
                             await signInWithCustomToken(auth, initialAuthToken).catch(async () => {
                                 await signInAnonymously(auth);
                             });
@@ -292,7 +292,6 @@
                 
                 const unsubPlayers = onSnapshot(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'players'), (snap) => {
                     const p = {}; snap.forEach(d => p[d.id] = d.data()); setPlayers(p);
-                    if (!p[user.uid]) setShowJoinModal(true); else setShowJoinModal(false);
                 });
                 
                 const unsubPlates = onSnapshot(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'plates'), (snap) => {
@@ -569,6 +568,7 @@
                     setClaimingState(null);
                 } catch (err) { console.error(err); }
             };
+            
             const handleUnclaimState = async () => {
                 if (!unclaimingState || !user) return;
                 try {
@@ -576,10 +576,12 @@
                     setUnclaimingState(null);
                 } catch (err) { console.error(err); }
             };
+            
             const checkBingo = (marks = []) => {
                 const lines = [[0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24], [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24], [0,6,12,18,24], [4,8,12,16,20]];
                 return lines.some(line => line.every(idx => marks.includes(idx)));
             };
+            
             const handleToggleBingo = async (index) => {
                 const myPlayer = players[user.uid];
                 if (!myPlayer || !myPlayer.bingoBoard || index === 12) return;
@@ -610,52 +612,23 @@
             if (error) return (<div className="h-full w-full flex items-center justify-center p-4"><div className="bg-red-900/50 border border-red-500 rounded-xl p-6 text-center max-w-md"><span className="text-4xl mb-4 block">⚠️</span><h2 className="text-xl font-bold mb-2">Oops! Something went wrong.</h2><p className="text-red-200">{error}</p></div></div>);
             if (isLoading) return (<div className="h-full w-full flex flex-col items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-gray-400 font-medium animate-pulse">Packing the trunk...</p></div>);
 
-            if (showJoinModal) {
-                return (
-                    <div className="h-full w-full flex items-center justify-center p-4 relative overflow-hidden bg-gray-900">
-                        <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-700 z-10 max-h-[90vh] overflow-y-auto">
-                            <div className="text-center mb-4">
-                                <h1 className="text-2xl font-bold text-white mb-1">Road Trip Games</h1>
-                                <p className="text-gray-400 text-sm">Create your profile!</p>
-                            </div>
-                            <form onSubmit={handleJoin} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-1">What's your name?</label>
-                                    <input type="text" value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Dad, Timmy" className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" maxLength={12} required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-1">Select Rally Vehicle</label>
-                                    <div className="grid gap-2">
-                                        {Object.values(VEHICLES).map(veh => (
-                                            <button key={veh.id} type="button" onClick={() => setSelectedVehicle(veh.id)} className={`p-3 rounded-xl border-2 text-left flex flex-col gap-1 transition-all ${selectedVehicle === veh.id ? 'bg-cyan-900/40 border-cyan-500 scale-[1.02]' : 'bg-gray-900 border-gray-700 opacity-70'}`}>
-                                                <div className="flex items-center gap-2"><span className="text-2xl">{veh.icon}</span><span className={`font-bold text-sm ${veh.color}`}>{veh.name}</span></div>
-                                                <span className="text-[10px] text-gray-400 leading-tight">{veh.desc}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <button type="submit" disabled={!joinName.trim() || isJoining} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 mt-2">Start Playing</button>
-                            </form>
-                        </div>
-                    </div>
-                );
-            }
-
+            const hasProfile = !!players[user?.uid];
             const me = players[user?.uid] || { name: 'Player', raceState: {} };
             const myVehicleDef = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
             const activeRoute = (raceData?.active && raceData?.routeId) ? ROUTES[raceData.routeId] : null;
-            const raceLeaderboard = Object.values(players).filter(p => p.raceState?.finishTime).sort((a, b) => (a.raceState.finishTime - a.raceState.startTime) - (b.raceState.finishTime - b.raceState.startTime));
             const odometerValue = String((me.raceState?.checkpoint || 0) * 142 + driveProgress * 12).padStart(6, '0');
 
             return (
                 <div className="h-[100dvh] w-full flex flex-col max-w-lg mx-auto bg-gray-950 relative overflow-hidden">
                     
-                    {/* Top Header outside Rally */}
-                    {activeTab !== 'rally' && (
+                    {/* Top Header displays globally UNLESS actively driving in Rally */}
+                    {(activeTab !== 'rally' || !hasProfile) && (
                         <header className="bg-gray-800 border-b border-gray-700 shadow-md px-4 py-4 shrink-0 pt-safe z-20">
                             <div className="flex justify-between items-center">
                                 <h1 className="text-xl font-bold text-white flex items-center gap-2"><span>🚙</span> Road Trip Games</h1>
-                                <div className={`w-8 h-8 rounded-full ${me.color || 'bg-gray-500'} flex items-center justify-center text-sm font-bold shadow-sm`}>{me.name.charAt(0).toUpperCase()}</div>
+                                {hasProfile && (
+                                    <div className={`w-8 h-8 rounded-full ${me.color || 'bg-gray-500'} flex items-center justify-center text-sm font-bold shadow-sm`}>{me.name.charAt(0).toUpperCase()}</div>
+                                )}
                             </div>
                         </header>
                     )}
@@ -663,7 +636,40 @@
                     {/* Main Content Area */}
                     <main className="flex-1 w-full bg-gray-900 relative overflow-y-auto pb-[80px]">
                         
-                        {activeTab === 'rally' && (
+                        {/* UN-GATED SETUP: Welcome Profile creation lives inside the Rally tab instead of blocking the app */}
+                        {activeTab === 'rally' && !hasProfile && (
+                            <div className="h-full w-full flex items-center justify-center p-4 relative overflow-hidden">
+                                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#374151 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-700 z-10 max-h-full overflow-y-auto">
+                                    <div className="text-center mb-6">
+                                        <span className="text-5xl block mb-2">👋</span>
+                                        <h1 className="text-2xl font-bold text-white mb-1">Welcome!</h1>
+                                        <p className="text-gray-400 text-sm">Create your profile to join the games.</p>
+                                    </div>
+                                    <form onSubmit={handleJoin} className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">What's your name?</label>
+                                            <input type="text" value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Dad, Timmy" className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-cyan-500 shadow-inner" maxLength={12} required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">Select Rally Vehicle</label>
+                                            <div className="grid gap-2">
+                                                {Object.values(VEHICLES).map(veh => (
+                                                    <button key={veh.id} type="button" onClick={() => setSelectedVehicle(veh.id)} className={`p-3 rounded-xl border-2 text-left flex flex-col gap-1 transition-all ${selectedVehicle === veh.id ? 'bg-cyan-900/40 border-cyan-500 scale-[1.02]' : 'bg-gray-900 border-gray-700 opacity-70 hover:opacity-100'}`}>
+                                                        <div className="flex items-center gap-2"><span className="text-2xl">{veh.icon}</span><span className={`font-bold text-sm ${veh.color}`}>{veh.name}</span></div>
+                                                        <span className="text-[10px] text-gray-400 leading-tight">{veh.desc}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <button type="submit" disabled={!joinName.trim() || isJoining} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.5)] active:scale-95 transition-all text-lg tracking-widest mt-2 uppercase">Join Game</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RALLY TAB (If Profile Exists) */}
+                        {activeTab === 'rally' && hasProfile && (
                             <div className="h-full w-full flex flex-col relative">
                                 {/* Rally Dashboard HUD */}
                                 <div className="h-[25%] min-h-[160px] w-full bg-black border-b-4 border-gray-800 p-4 pt-safe flex flex-col justify-end shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative z-20 shrink-0">
@@ -672,7 +678,7 @@
                                             <div className={`w-5 h-5 rounded-full ${myVehicleDef.bg} flex items-center justify-center text-[10px] font-bold text-white`}>{me.name.charAt(0)}</div>
                                             <span className="text-[10px] font-bold text-gray-300 truncate max-w-[100px]">{activeRoute?.name || 'Lobby'}</span>
                                         </div>
-                                        <div className="text-cyan-400 font-mono font-bold text-sm bg-gray-900/80 px-2 py-1 rounded-md border border-cyan-900">
+                                        <div className="text-cyan-400 font-mono font-bold text-sm bg-gray-900/80 px-2 py-1 rounded-md border border-cyan-900 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                                             {currentTime}
                                         </div>
                                     </div>
@@ -681,7 +687,7 @@
                                         <div className="flex flex-col items-center gap-1 w-1/4">
                                             <span className="text-[9px] text-gray-500 font-black tracking-widest uppercase">Fuel</span>
                                             <div className="h-16 w-8 bg-gray-900 border-2 border-gray-700 rounded-t-xl rounded-b-sm relative overflow-hidden flex items-end shadow-inner">
-                                                <div className={`w-full transition-all duration-300 ease-out ${gasLevel > (myVehicleDef.gasTank * 0.4) ? 'bg-green-500' : gasLevel > (myVehicleDef.gasTank * 0.2) ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef.gasTank || 100))*100}%`}}></div>
+                                                <div className={`w-full transition-all duration-300 ease-out ${gasLevel > (myVehicleDef.gasTank * 0.4) ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : gasLevel > (myVehicleDef.gasTank * 0.2) ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef.gasTank || 100))*100}%`}}></div>
                                             </div>
                                             <span className={`text-lg mt-1 ${gasLevel <= (myVehicleDef.gasTank * 0.2) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
                                         </div>
@@ -886,19 +892,35 @@
                             </div>
                         )}
 
+                        {/* PLATES TAB (Viewable by everyone) */}
                         {activeTab === 'plates' && (
-                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 pb-8">
                                 <div className="col-span-full flex justify-between items-end mb-2">
                                     <h2 className="text-lg font-bold text-white">License Plate Hunt</h2>
                                     <span className="text-xs text-gray-400">{Object.keys(plates).length}/50 Found</span>
                                 </div>
-                                {US_STATES.map((state) => {
-                                    const isFound = plates[state];
+                                {!hasProfile && (
+                                    <div className="col-span-full bg-blue-900/40 border border-blue-700 rounded-lg p-3 text-center mb-2 shadow-inner">
+                                        <p className="text-sm text-blue-200">
+                                            👀 You are spectating.<br/>
+                                            <button onClick={() => setActiveTab('rally')} className="font-bold text-white underline mt-1">Create a profile</button> to claim plates!
+                                        </p>
+                                    </div>
+                                )}
+                                {US_STATES.map((stateAbbr) => {
+                                    const stateName = STATE_DATA[stateAbbr]?.name || stateAbbr;
+                                    const isFound = plates[stateName];
                                     const finder = isFound ? players[isFound.foundBy] : null;
                                     const isOwner = isFound && user && isFound.foundBy === user.uid;
                                     return (
-                                        <button key={state} onClick={() => { if (!isFound) setClaimingState(state); else if (isOwner) setUnclaimingState(state); }} disabled={isFound && !isOwner} className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 text-gray-300 active:scale-95'}`}>
-                                            <span className="font-semibold text-sm leading-tight truncate w-full px-1">{state}</span>
+                                        <button key={stateAbbr} 
+                                            onClick={() => { 
+                                                if (!hasProfile) { setActiveTab('rally'); return; }
+                                                if (!isFound) setClaimingState(stateName); else if (isOwner) setUnclaimingState(stateName); 
+                                            }} 
+                                            disabled={isFound && !isOwner} 
+                                            className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 text-gray-300 active:scale-95'}`}>
+                                            <span className="font-semibold text-sm leading-tight truncate w-full px-1">{stateAbbr}</span>
                                             {isFound && <span className="text-[9px] mt-1 bg-black/30 px-2 py-0.5 rounded-full truncate max-w-[90%]">by {finder?.name || 'Someone'}</span>}
                                         </button>
                                     );
@@ -906,7 +928,19 @@
                             </div>
                         )}
 
-                        {activeTab === 'bingo' && (
+                        {/* BINGO TAB */}
+                        {activeTab === 'bingo' && !hasProfile && (
+                            <div className="h-full w-full flex items-center justify-center p-4 text-center">
+                                <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full border border-gray-700 shadow-xl">
+                                    <span className="text-5xl block mb-3">🎲</span>
+                                    <h2 className="text-xl font-bold text-white mb-2">Road Trip Bingo</h2>
+                                    <p className="text-gray-400 text-sm mb-6">Create a player profile to generate your randomized Bingo board!</p>
+                                    <button onClick={() => setActiveTab('rally')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg w-full active:scale-95 transition-transform">Create Profile</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'bingo' && hasProfile && (
                             <div className="p-4 space-y-4">
                                 <h2 className="text-lg font-bold text-white">Road Trip Bingo</h2>
                                 {players[user.uid]?.bingoBoard ? (
@@ -927,14 +961,15 @@
                             </div>
                         )}
 
+                        {/* LEADERBOARD TAB (Viewable by everyone) */}
                         {activeTab === 'leaderboard' && (
-                            <div className="p-4 space-y-3">
+                            <div className="p-4 space-y-3 pb-8">
                                 <h2 className="text-lg font-bold text-white mb-2">Overall Standings</h2>
                                 {leaderboard.map((p, i) => (
                                     <div key={p.uid} className="bg-gray-800 rounded-xl p-3 flex items-center justify-between border border-gray-700">
                                         <div className="flex items-center gap-3">
                                             <div className="text-xl w-6 text-center font-bold text-gray-500">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</div>
-                                            <div className={`w-10 h-10 rounded-full ${p.color} flex items-center justify-center text-lg font-bold`}>{p.name.charAt(0)}</div>
+                                            <div className={`w-10 h-10 rounded-full ${p.color} flex items-center justify-center text-lg font-bold shadow-inner`}>{p.name.charAt(0)}</div>
                                             <h3 className="font-bold text-base text-white">{p.name}</h3>
                                         </div>
                                         <div className="text-center">
@@ -943,17 +978,19 @@
                                         </div>
                                     </div>
                                 ))}
+                                {leaderboard.length === 0 && <div className="text-center py-10 text-gray-500">Nobody has joined yet!</div>}
                             </div>
                         )}
 
+                        {/* ACTIVITY TAB (Viewable by everyone) */}
                         {activeTab === 'activity' && (
-                            <div className="p-4 space-y-4">
+                            <div className="p-4 space-y-4 pb-8">
                                 <h2 className="text-lg font-bold text-white mb-2">Recent Activity</h2>
                                 <div className="border-l-2 border-gray-700 ml-3 space-y-4 pb-4">
                                     {activityFeed.map((ev) => (
                                         <div key={ev.id} className="relative pl-5">
                                             <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full ${ev.playerColor} border-2 border-gray-900`}></div>
-                                            <div className={`bg-gray-800 rounded-lg p-2 border ${ev.type === 'bingo' ? 'border-green-500/50' : 'border-gray-700'}`}>
+                                            <div className={`bg-gray-800 rounded-lg p-2 border ${ev.type === 'bingo' ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-gray-700'}`}>
                                                 <p className="text-xs text-gray-300">
                                                     {ev.type === 'plate' ? <><span className="font-bold text-white">{ev.playerName}</span> spotted <span className="font-bold text-blue-400">{ev.stateName}</span>!</> : <><span className="font-bold text-white">{ev.playerName}</span> got <span className="font-bold text-green-400">BINGO</span>!</>}
                                                 </p>
@@ -985,25 +1022,25 @@
                         </div>
                     </nav>
 
-                    {/* Plate Modals */}
+                    {/* Plate Claim Modals */}
                     {claimingState && (
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
                                 <div className="text-center mb-6"><span className="text-4xl block mb-2">👀</span><h3 className="text-lg text-gray-300">Did you spot</h3><h2 className="text-2xl font-black text-white">{claimingState}?</h2></div>
                                 <div className="flex gap-3">
                                     <button onClick={() => setClaimingState(null)} className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-bold">Cancel</button>
-                                    <button onClick={handleClaimState} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold">Yes, claim it!</button>
+                                    <button onClick={handleClaimState} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-bold shadow-lg">Yes, claim it!</button>
                                 </div>
                             </div>
                         </div>
                     )}
                     {unclaimingState && (
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-red-900/50">
+                            <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-red-900/50 shadow-2xl">
                                 <div className="text-center mb-6"><span className="text-4xl block mb-2">⏪</span><h3 className="text-lg text-gray-300">Remove claim for</h3><h2 className="text-2xl font-black text-white">{unclaimingState}?</h2></div>
                                 <div className="flex gap-3">
                                     <button onClick={() => setUnclaimingState(null)} className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-bold">Cancel</button>
-                                    <button onClick={handleUnclaimState} className="flex-1 py-3 bg-red-600 text-white rounded-lg font-bold">Remove</button>
+                                    <button onClick={handleUnclaimState} className="flex-1 py-3 bg-red-600 text-white rounded-lg font-bold shadow-lg">Remove</button>
                                 </div>
                             </div>
                         </div>
