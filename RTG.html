@@ -89,6 +89,13 @@
 
         const PLAYER_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
 
+        const RADIO_STATIONS = [
+            { id: 'off', name: 'RADIO: OFF', url: '' },
+            { id: 'chill', name: 'RADIO: CHILL VIBES', url: 'https://ice1.somafm.com/groovesalad-128-mp3' },
+            { id: 'country', name: 'RADIO: DAD ROCK', url: 'https://ice1.somafm.com/bootliquor-128-mp3' },
+            { id: 'spy', name: 'RADIO: HIGH ENERGY', url: 'https://ice1.somafm.com/secretagent-128-mp3' }
+        ];
+
         const BINGO_ITEMS = [
             "Yellow Car", "Cow", "Police Car", "Tow Truck", "Motorcycle", "Ambulance", "Dog in Car", "RV / Camper", 
             "Tractor", "Train", "Wind Turbine", "Solar Panels", "Fast Food Sign", "Bridge", "Water Tower",
@@ -108,7 +115,7 @@
         const VEHICLES = {
             sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, handling: 0.5, luck: 0.15, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank. Nimble handling halves hazard penalties.' },
             prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, handling: 1.0, luck: 0.0, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
-            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, handling: 1.5, luck: -0.1, desc: 'Slow & Steady. Massive gas tank means very few pit stops! Clunky handling worsens hazards.' }
+            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, handling: 1.5, luck: -0.1, desc: 'Slow & Steady. Massive gas tank means very few pit stops! Has room for all the Rocklin Solar Repair equipment.' }
         };
 
         const POI_STOPS = [
@@ -123,24 +130,37 @@
         ];
 
         const RANDOM_EVENTS = [
-            { id: 're1', title: 'Grape Juice Disaster!', text: 'Someone spilled sticky juice all over the backseat! Pull over to clean it up.', icon: '🧃', duration: 10 },
-            { id: 're2', title: 'Emergency Bathroom Break!', text: 'The dog really, really has to pee! Pull over NOW!', icon: '🐕', duration: 5 },
-            { id: 're3', title: 'Brain Freeze!', text: 'Drank the gas station slushie too fast. Everyone needs a minute to recover.', icon: '🥶', duration: 5 },
-            { id: 're4', title: 'Moth Attack!', text: 'A giant moth flew into the car! Everyone panic and roll down the windows!', icon: '🦋', duration: 10 },
-            { id: 're5', title: 'Dance Party!', text: "Mom's favorite song came on. Mandatory car dance party!", icon: '💃', duration: 10 },
-            { id: 're6', title: 'Lost Shoe!', text: 'Someone dangled their foot out the window and lost a shoe. Go back and get it!', icon: '👟', duration: 10 },
-            { id: 're7', title: 'Stinky Fart!', text: 'Who did that?! Pull over and air out the car immediately!', icon: '🦨', duration: 5 },
-            { id: 're8', title: 'Lost French Fry!', text: 'Dropped the last golden french fry between the seats. Searching...', icon: '🍟', duration: 10 },
-            { id: 're9', title: 'Are we there yet?', text: 'Sibling argument in the back seat! Pulling over to restore the peace.', icon: '🛑', duration: 5 },
-            { id: 're10', title: 'Cow Statue!', text: 'Stuck behind a tractor carrying a giant fiberglass cow.', icon: '🐄', duration: 10 },
-            { id: 're11', title: 'Bee in the Car!', text: 'A bee flew through the window! Everyone stay perfectly still!', icon: '🐝', duration: 10 },
-            { id: 're12', title: 'Cheese Dust Explosion!', text: 'The bag of cheesy poofs popped and coated everything in orange dust!', icon: '🧀', duration: 10 },
-            { id: 're13', title: 'Lost Tablet!', text: 'A tablet slid under the seat into the abyss. Flashlights out!', icon: '📱', duration: 5 },
-            { id: 're14', title: 'Epic Hiccups!', text: 'Someone got the loudest hiccups ever. Holding breath for a cure.', icon: '😮‍💨', duration: 5 },
-            { id: 're15', title: 'Smudged Glasses!', text: 'The driver sneezed on their sunglasses. Pulling over to wipe them off!', icon: '🕶️', duration: 5 }
+            { id: 're1', title: 'Grape Juice Disaster!', text: 'Ava spilled sticky juice all over the backseat! Pull over to clean it up.', icon: '🧃', duration: 10 },
+            { id: 're2', title: 'Emergency Bathroom Break!', text: 'Granny really, really has to pee! Pull over NOW!', icon: '🚻', duration: 5 },
+            { id: 're3', title: 'Brain Freeze!', text: 'Brendan drank the gas station slushie too fast. Everyone needs a minute to recover.', icon: '🥶', duration: 5 },
+            { id: 're4', title: 'Moth Attack!', text: 'A giant moth flew into the car! Michelle is panicking! Roll down the windows!', icon: '🦋', duration: 10 },
+            { id: 're5', title: 'Dance Party!', text: "Desiree's favorite song came on. Mandatory car dance party!", icon: '💃', duration: 10 },
+            { id: 're6', title: 'Lost Shoe!', text: 'Lucas dangled his foot out the window and lost a shoe. Go back and get it!', icon: '👟', duration: 10 },
+            { id: 're7', title: 'Stinky Fart!', text: 'Who did that?! Brent blamed the dog! Pull over and air out the car immediately!', icon: '🦨', duration: 5 },
+            { id: 're8', title: 'Lost French Fry!', text: 'Jacob dropped the last golden french fry between the seats. Searching...', icon: '🍟', duration: 10 },
+            { id: 're9', title: 'GPS Arguments!', text: 'Quincy is aggressively arguing with the GPS lady! Pulling over to restore the peace.', icon: '🛑', duration: 5 },
+            { id: 're10', title: 'Work Traffic!', text: 'Natalie got us stuck behind a slow-moving Rocklin Solar Repair truck!', icon: '🚚', duration: 10 },
+            { id: 're11', title: 'Bee in the Car!', text: 'A bee flew through the window! Audra, stay perfectly still!', icon: '🐝', duration: 10 },
+            { id: 're12', title: 'Cheese Dust Explosion!', text: 'Zack squeezed the bag of cheesy poofs too hard and coated everything in orange dust!', icon: '🧀', duration: 10 },
+            { id: 're13', title: 'Lost Tablet!', text: 'Hailey\'s tablet slid under the seat into the abyss. Flashlights out!', icon: '📱', duration: 5 },
+            { id: 're14', title: 'Epic Hiccups!', text: 'Shanna got the loudest hiccups ever. Holding breath for a cure.', icon: '😮‍💨', duration: 5 },
+            { id: 're15', title: 'Smudged Glasses!', text: 'Zoe sneezed on her glasses. Pulling over to wipe them off!', icon: '👓', duration: 5 }
         ];
 
         const DECISIONS = [
+            // Points Vs Gas Dilemmas
+            { id: 'pvg1', isPointsVsGas: true, icon: "🗺️", text: "The GPS says stay on the highway, but you see a dirt road that might save 10 minutes.", riskText: "Admit Defeat", safeText: "Stubbornly Commit", opt1: { pts: -300, gas: 0, msg: "DIGNITY LOST", subMsg: "Swallowed your pride and stuck to the highway. Tank is safe!" }, opt2: { pts: 0, gas: -40, msg: "STUCK IN MUD", subMsg: "Refused to ask for directions. Stuck behind a tractor!" } },
+            { id: 'pvg2', isPointsVsGas: true, icon: "🎵", text: "Backseat passengers demand the aux cord to play 20 hours of terrible internet memes.", riskText: "Surrender Aux", safeText: "Fight for Control", opt1: { pts: -500, gas: 0, msg: "EARS BLEEDING", subMsg: "Your soul dies a little, but you maintain your driving speed." }, opt2: { pts: 0, gas: -25, msg: "SWERVING!", subMsg: "You swerve across the rumble strips aggressively slapping hands away!" } },
+            { id: 'pvg3', isPointsVsGas: true, icon: "🍣", text: "Everyone is starving. The only option is a corporate Mega-Mart selling discounted tuna rolls.", riskText: "Eat the Sushi", safeText: "Buy Granola", opt1: { pts: 1000, gas: -60, msg: "BATHROOM EMERGENCY!", subMsg: "Massive points for bravery, but the sushi exacted its revenge on your gas tank!" }, opt2: { pts: -300, gas: 0, msg: "SO BORING", subMsg: "Safe, but the CEO buys another yacht with your money." } },
+            { id: 'pvg4', isPointsVsGas: true, icon: "☀️", text: "You spot a house with a terribly installed, inefficient roof setup.", riskText: "Leave Business Card", safeText: "Keep Driving", opt1: { pts: 800, gas: -20, msg: "TRUE HUSTLER", subMsg: "Left a Rocklin Solar Repair card! Time for an intervention!" }, opt2: { pts: 0, gas: 0, msg: "NOT MY PROBLEM", subMsg: "Left them to their miserable energy bills to save gas." } },
+            { id: 'pvg5', isPointsVsGas: true, icon: "🪙", text: "You approach an automated toll booth, but you have no exact change.", riskText: "Toss Trash in Bin", safeText: "Wait for Attendant", opt1: { pts: -200, gas: 0, msg: "IMMENSE GUILT", subMsg: "The machine accepted your pennies and buttons. You kept momentum." }, opt2: { pts: 0, gas: -30, msg: "BUREAUCRACY", subMsg: "Do the right thing. Sat idling for 10 minutes while they took your card." } },
+            
+            // MAGA Hazards (Only 1 will trigger per game)
+            { id: 'maga1', isMaga: true, text: "A MAGA guy in a tin-foil hat blocks the road, screaming that Rocklin Solar Repair panels are draining the sun's energy!", riskText: "Drop Truth & Facts!", safeText: "Agree to Disagree", icon: "🇺🇸", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "FACTS WON!", effect: "skip_drive", subMsg: "You explained thermodynamics. His brain short-circuited and he moved. Zoom!" } : { success: false, msg: "FAKE NEWS!", effect: "lose_gas", subMsg: "He yelled 'FAKE NEWS!' and siphoned your gas to power his bunker." } },
+            { id: 'maga2', isMaga: true, text: "A MAGA protestor insists the Earth is flat and you're about to drive your Rocklin Solar truck off the edge.", riskText: "Show a Globe & Facts!", safeText: "Nod Slowly and Reverse", icon: "🌍", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "SCIENCE RULES!", effect: "skip_drive", subMsg: "Basic geometry saved the day! He stepped aside." } : { success: false, msg: "DO YOUR RESEARCH!", effect: "lose_gas", subMsg: "He forced you to watch a 3-hour YouTube video. Lost major gas." } },
+            { id: 'maga3', isMaga: true, text: "A MAGA guy blocks the road claiming birds are government drones sent to spy on Rocklin Solar Repair installations.", riskText: "Hit Him with Facts!", safeText: "Pretend to be a Spy", icon: "🦅", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "TRUTH BOMB!", effect: "skip_drive", subMsg: "You showed him an anatomy book. He ran away in fear." } : { success: false, msg: "THEY'RE WATCHING!", effect: "lose_gas", subMsg: "He threw a net over your car to protect you. Lost gas escaping." } },
+
+            // Standard Dilemmas
             { id: 'd1', text: "A family of bears are roasting marshmallows in the road.", riskText: "Make S'mores!", safeText: "Sneak Around", icon: "🐻", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Sugar rush! Zoomed ahead!", effect: "skip_drive" } : { success: false, msg: "They ate your snacks! Lost gas.", effect: "lose_gas" } },
             { id: 'd2', text: "Aliens set up a glowing lemonade stand.", riskText: "Drink Lemonade", safeText: "Keep Driving", icon: "👽", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Space juice! Massive boost!", effect: "skip_drive" } : { success: false, msg: "Brain freeze! Lost gas.", effect: "lose_gas" } },
             { id: 'd3', text: "A giant tumbleweed blocks the entire highway.", riskText: "Ram It!", safeText: "Wait for Wind", icon: "💨", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Busted through! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "It was solid wood! Lost gas.", effect: "lose_gas" } },
@@ -150,12 +170,7 @@
             { id: 'd7', text: "The road turns into a giant piano keyboard.", riskText: "Play a Song", safeText: "Drive Slowly", icon: "🎹", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Played a masterpiece! Zoom!", effect: "skip_drive" } : { success: false, msg: "Hit a sour note! Tires popped.", effect: "lose_gas" } },
             { id: 'd8', text: "A wizard asks for directions to the nearest bathroom.", riskText: "Help Wizard", safeText: "Pretend Not to Hear", icon: "🧙‍♂️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "He teleported your car forward!", effect: "skip_drive" } : { success: false, msg: "Turned map into a frog. Lost gas.", effect: "lose_gas" } },
             { id: 'd9', text: "A portal to a candy dimension opens on the highway.", riskText: "Drive In!", safeText: "Stay on Highway", icon: "🍭", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Cotton candy roads! Huge shortcut!", effect: "skip_drive" } : { success: false, msg: "Got stuck in licorice! Lost gas.", effect: "lose_gas" } },
-            { id: 'd10', text: "A sleeping dragon is blocking the bridge ahead.", riskText: "Tickle Its Nose", safeText: "Find Detour", icon: "🐉", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "It sneezed you across! Boost!", effect: "skip_drive" } : { success: false, msg: "It woke up cranky! Lost gas.", effect: "lose_gas" } },
-            { id: 'd11', text: "A flock of ostriches challenge you to a race.", riskText: "Race Them!", safeText: "Let Them Win", icon: "🦤", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "You won! Ostrich boost!", effect: "skip_drive" } : { success: false, msg: "Too fast! Engine overheated.", effect: "lose_gas" } },
-            { id: 'd12', text: "A pirate ship on wheels demands a toll.", riskText: "Board the Ship!", safeText: "Pay the Toll", icon: "🏴‍☠️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Found buried treasure! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "Walked the plank! Lost gas.", effect: "lose_gas" } },
-            { id: 'd13', text: "A puddle of sticky pink bubblegum covers the road.", riskText: "Drive Fast!", safeText: "Edge Around", icon: "🫧", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Bounced right over it! Shortcut!", effect: "skip_drive" } : { success: false, msg: "Completely stuck! Burned gas.", effect: "lose_gas" } },
-            { id: 'd14', text: "A tornado made entirely of spaghetti is approaching!", riskText: "Drive Through!", safeText: "Take Detour", icon: "🌪️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Delicious! Major shortcut!", effect: "skip_drive" } : { success: false, msg: "Car covered in sauce. Lost gas.", effect: "lose_gas" } },
-            { id: 'd15', text: "A giant chicken is crossing the road. Why?", riskText: "Ask the Chicken", safeText: "Just Wait", icon: "🐔", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Rode on its back! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "It chased your car! Lost gas.", effect: "lose_gas" } }
+            { id: 'd10', text: "A sleeping dragon is blocking the bridge ahead.", riskText: "Tickle Its Nose", safeText: "Find Detour", icon: "🐉", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "It sneezed you across! Boost!", effect: "skip_drive" } : { success: false, msg: "It woke up cranky! Lost gas.", effect: "lose_gas" } }
         ];
 
         const STATE_DATA = {
@@ -272,12 +287,12 @@
             const [ghostPercent, setGhostPercent] = useState(null);
             const [confirmQuit, setConfirmQuit] = useState(false);
             
-            // Sweet Spot & Overheat State
+            // Radio & Overheat State
             const [overheat, setOverheat] = useState(0);
             const [isOverheated, setIsOverheated] = useState(false);
-            const [sweetSpot, setSweetSpot] = useState(false);
             const [lastTapTime, setLastTapTime] = useState(0);
-            const [showPerfectShift, setShowPerfectShift] = useState(false);
+            const [radioStationIdx, setRadioStationIdx] = useState(0);
+            const audioRef = useRef(null);
             
             // Rally Encounter State
             const [usedDecisions, setUsedDecisions] = useState([]);
@@ -432,19 +447,18 @@
                 return () => clearTimeout(timer);
             }, [isOverheated, overheat, status]);
 
-            // Sweet Spot Interval Logic
+            // Radio Control Logic
             useEffect(() => {
-                let interval;
-                if (status === 'driving' && !isOverheated) {
-                    interval = setInterval(() => {
-                        setSweetSpot(true);
-                        setTimeout(() => setSweetSpot(false), 600); // Sweet spot open for 600ms
-                    }, 2000 + Math.random() * 3000);
-                } else {
-                    setSweetSpot(false);
+                if (audioRef.current) {
+                    if (RADIO_STATIONS[radioStationIdx].id === 'off') {
+                        audioRef.current.pause();
+                        audioRef.current.src = "";
+                    } else {
+                        audioRef.current.src = RADIO_STATIONS[radioStationIdx].url;
+                        audioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
+                    }
                 }
-                return () => clearInterval(interval);
-            }, [status, isOverheated]);
+            }, [radioStationIdx]);
 
             useEffect(() => {
                 let timer;
@@ -580,14 +594,6 @@
                 let progressGain = 1;
                 let gasCost = 2;
 
-                if (sweetSpot) {
-                    progressGain = 2; // Perfect shift!
-                    gasCost = 1; // Save gas on perfect shifts
-                    setShowPerfectShift(true);
-                    setTimeout(() => setShowPerfectShift(false), 500);
-                    setSweetSpot(false); // consume the sweet spot
-                }
-
                 setSimulatedSpeed(prev => Math.min(prev + 18, 85) + Math.floor(Math.random() * 4));
                 const newGas = Math.max(0, gasLevel - gasCost);
                 setGasLevel(newGas);
@@ -604,7 +610,20 @@
                 const decisionPoint = Math.floor(requiredTaps * 0.30); 
                 if (driveProgress + progressGain >= decisionPoint && !hasFacedDecision && driveProgress < decisionPoint) {
                     let availableDecisions = DECISIONS.filter(d => !usedDecisions.includes(d.id));
-                    if (availableDecisions.length === 0) availableDecisions = DECISIONS; 
+                    const hasFacedMaga = usedDecisions.some(id => id.startsWith('maga'));
+
+                    if (hasFacedMaga) {
+                        availableDecisions = availableDecisions.filter(d => !d.isMaga);
+                    } else if ((me.raceState?.checkpoint || 0) >= 2) {
+                        // Force a MAGA encounter if they haven't seen one yet and have reached state #3
+                        const magaDecisions = availableDecisions.filter(d => d.isMaga);
+                        if (magaDecisions.length > 0) {
+                            availableDecisions = magaDecisions;
+                        }
+                    }
+
+                    if (availableDecisions.length === 0) availableDecisions = DECISIONS.filter(d => !d.isMaga); 
+                    
                     const picked = availableDecisions[Math.floor(Math.random() * availableDecisions.length)];
                     setUsedDecisions(prev => [...prev, picked.id]); 
                     setActiveDecision(picked);
@@ -648,17 +667,53 @@
                 const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
                 
                 let newGas = gasLevel;
+                let currentScore = me.raceState?.score || 0;
+                
+                if (activeDecision.isPointsVsGas) {
+                    const choice = isRisk ? activeDecision.opt1 : activeDecision.opt2;
+                    const newScore = currentScore + choice.pts;
+                    newGas = Math.max(0, gasLevel + choice.gas);
+                    
+                    setDecisionResultData({ 
+                        msg: choice.msg, 
+                        subMsg: choice.subMsg,
+                        color: choice.pts > 0 ? "text-green-400" : choice.gas < 0 ? "text-red-500" : "text-yellow-400" 
+                    });
+                    
+                    setGasLevel(newGas);
+                    if (choice.pts !== 0) {
+                        try {
+                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                                'raceState.score': newScore
+                            });
+                        } catch(e){}
+                    }
+                    
+                    setStatus('decisionResult');
+                    setTimeout(() => {
+                        setDecisionResultData(null);
+                        if (newGas <= 0) {
+                            setReturnStatus('driving');
+                            setRefuelTimer(15);
+                            setStatus('out_of_gas');
+                        } else {
+                            setStatus('driving');
+                        }
+                    }, 3500);
+                    return;
+                }
+
                 if (!isRisk) {
                     setDecisionResultData({ 
                         msg: "PLAYED IT SAFE!", 
-                        subMsg: "Boring, but you didn't risk your gas.",
+                        subMsg: activeDecision.isMaga ? "You nodded slowly and avoided eye contact. Boring, but safe." : "Boring, but you didn't risk your gas.",
                         color: "text-gray-400" 
                     });
                 } else {
                     const result = activeDecision.resolve(v.luck || 0);
                     setDecisionResultData({ 
                         msg: result.success ? "SUCCESS!" : "FAILED!", 
-                        subMsg: result.msg,
+                        subMsg: result.subMsg || result.msg,
                         color: result.success ? "text-green-400" : "text-red-500" 
                     });
                     
@@ -667,7 +722,7 @@
                         setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
                         try {
                             await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                                'raceState.score': (me.raceState?.score || 0) + 200
+                                'raceState.score': currentScore + 200
                             });
                         } catch(e){}
                     } else {
@@ -1043,6 +1098,10 @@
 
             return (
                 <div className="h-full w-full flex flex-col bg-gray-950 relative overflow-hidden">
+                    
+                    {/* Background Audio Player */}
+                    <audio ref={audioRef} src="" crossOrigin="anonymous" preload="none" />
+
                     <main className="flex-1 w-full relative flex flex-col overflow-y-auto">
                         
                         {/* JOIN PROFILE MODAL INSIDE RALLY TAB */}
@@ -1092,7 +1151,6 @@
                                             <div className="h-12 sm:h-16 w-8 bg-gray-900 border-2 border-gray-700 rounded-t-xl rounded-b-sm relative overflow-hidden flex items-end shadow-inner">
                                                 <div className={`w-full transition-all duration-300 ease-out ${(myVehicleDef && gasLevel > (myVehicleDef.gasTank * 0.4)) ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : (myVehicleDef && gasLevel > (myVehicleDef.gasTank * 0.2)) ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef?.gasTank || 100))*100}%`}}></div>
                                             </div>
-                                            <span className={`text-base sm:text-lg mt-1 ${(myVehicleDef && gasLevel <= (myVehicleDef.gasTank * 0.2)) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
                                         </div>
 
                                         <div className="flex flex-col items-center justify-center w-2/4">
@@ -1178,27 +1236,27 @@
                                                 </div>
                                             )}
                                             
-                                            {/* Tachometer / Sweet Spot Console */}
+                                            {/* Tachometer / Radio Console */}
                                             <div className="w-full bg-black/60 rounded-3xl border-4 border-gray-800 p-4 flex flex-col items-center justify-center relative shadow-inner overflow-hidden shrink-0 z-10">
-                                                {/* Sweet Spot Light */}
-                                                <div className={`w-32 h-6 rounded-full border-2 mb-4 transition-colors duration-100 ${sweetSpot ? 'bg-blue-500 border-blue-200 shadow-[0_0_20px_rgba(59,130,246,1)]' : 'bg-gray-900 border-gray-700'}`}></div>
-                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest absolute top-2">SHIFT INDICATOR</div>
+                                                {/* Radio Console */}
+                                                <div className="flex items-center gap-4 mb-4">
+                                                    <button 
+                                                        onClick={() => setRadioStationIdx(prev => (prev + 1) % RADIO_STATIONS.length)}
+                                                        className={`px-4 py-1 rounded-full border-2 text-[10px] font-black tracking-widest transition-all ${RADIO_STATIONS[radioStationIdx].id !== 'off' ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-gray-800 border-gray-600 text-gray-400'}`}
+                                                    >
+                                                        📻 {RADIO_STATIONS[radioStationIdx].name}
+                                                    </button>
+                                                </div>
                                                 
                                                 {/* RPM / Overheat Gauge */}
                                                 <div className="w-full max-w-[250px] h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
                                                     <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
                                                 </div>
                                                 <div className="text-[10px] mt-2 font-black tracking-widest uppercase text-gray-400">{isOverheated ? <span className="text-red-500">ENGINE OVERHEATED</span> : 'ENGINE TEMP'}</div>
-
-                                                {showPerfectShift && (
-                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                        <span className="text-3xl font-black text-blue-400 italic animate-ping">PERFECT!</span>
-                                                    </div>
-                                                )}
                                             </div>
 
                                             {/* GPS Map Area - Larger and flex-growing */}
-                                            <div className="bg-black/50 rounded-2xl p-4 sm:p-6 border border-gray-800 relative shadow-inner flex-1 flex flex-col z-10 overflow-hidden">
+                                            <div className="bg-black/50 rounded-2xl p-4 sm:p-6 border border-gray-800 relative shadow-inner flex-1 flex flex-col z-10 overflow-y-auto">
                                                 
                                                 {/* State Flag Background */}
                                                 <div 
@@ -1206,11 +1264,11 @@
                                                     style={{ backgroundImage: `url(https://flagcdn.com/w640/us-${activeRoute.states[me.raceState?.checkpoint || 0].toLowerCase()}.png)` }}
                                                 ></div>
 
-                                                <div className="text-xs text-gray-500 font-black uppercase tracking-widest mb-8 flex justify-between relative z-10">
+                                                <div className="text-xs text-gray-500 font-black uppercase tracking-widest mb-8 flex justify-between relative z-10 shrink-0">
                                                     <span>GPS Route</span>
                                                 </div>
                                                 
-                                                <div className="relative h-2 bg-gray-800 rounded-full mb-10 mx-2 mt-auto z-10">
+                                                <div className="relative h-2 bg-gray-800 rounded-full mb-10 mx-2 mt-auto z-10 shrink-0">
                                                     <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
                                                     
                                                     {ghostPercent !== null && (
@@ -1232,7 +1290,7 @@
                                                 </div>
                                                 
                                                 {status === 'driving' && (
-                                                    <div className="mt-auto pt-4 sm:pt-6 relative z-10">
+                                                    <div className="mt-auto pt-4 sm:pt-6 relative z-10 shrink-0">
                                                         <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-2">
                                                             {(() => {
                                                                 const nextIdx = Math.min(activeRoute.states.length - 1, (me.raceState?.checkpoint || 0) + 1);
@@ -1243,11 +1301,11 @@
                                                         <div className="h-3 sm:h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-3 sm:mb-4">
                                                             <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-75" style={{ width: `${(driveProgress / (myVehicleDef?.driveTaps || 1)) * 100}%` }}></div>
                                                         </div>
-                                                        <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 text-center shadow-inner backdrop-blur-sm">
+                                                        <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 text-center shadow-inner backdrop-blur-sm h-auto min-h-max">
                                                             <div className="text-cyan-400 font-black text-[10px] sm:text-xs uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
                                                                 <span>💡</span> {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Fact
                                                             </div>
-                                                            <div className="text-gray-300 text-xs sm:text-sm font-bold leading-tight px-1 sm:px-2">
+                                                            <div className="text-gray-300 text-xs sm:text-sm font-bold leading-normal px-1 sm:px-2">
                                                                 {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.fact}
                                                             </div>
                                                         </div>
@@ -1283,7 +1341,9 @@
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">{activeDecision.icon}</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activeDecision.text}</h3>
-                                                    <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Silly Situation!</p>
+                                                    <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">
+                                                        {activeDecision.isMaga ? "CONSPIRACY CHECKPOINT!" : "Silly Situation!"}
+                                                    </p>
                                                     <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
                                                         <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base">
                                                             {activeDecision.riskText}
@@ -1408,7 +1468,7 @@
                                     )}
                                 </div>
 
-                                <footer className="h-[15dvh] min-h-[100px] max-h-[140px] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 shrink-0">
+                                <footer className="h-[15dvh] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 shrink-0">
                                     {status === 'finished' || !me.raceState?.startTime ? (
                                         <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-xl sm:text-2xl uppercase tracking-widest">
                                             ENGINE OFF
