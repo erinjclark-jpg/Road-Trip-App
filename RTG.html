@@ -80,6 +80,8 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
+        const GAME_VERSION = "v1.0.1";
+        
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
             authDomain: "road-trip-games-11255.firebaseapp.com",
@@ -88,6 +90,19 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         const PLAYER_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
+        
+        const FAMILY_NAMES = ["Shanna", "Hailey", "Audra", "Brendan", "Desiree", "Natalie", "Lucas", "Ava", "Michelle", "Brent", "Zack", "Jacob", "Quincy", "Zoe", "Granny"];
+
+        const BEATITUDES = [
+            "Blessed are the poor in spirit, for theirs is the kingdom of heaven.",
+            "Blessed are those who mourn, for they shall be comforted.",
+            "Blessed are the meek, for they shall inherit the earth.",
+            "Blessed are those who hunger and thirst for righteousness, for they shall be satisfied.",
+            "Blessed are the merciful, for they shall obtain mercy.",
+            "Blessed are the pure in heart, for they shall see God.",
+            "Blessed are the peacemakers, for they shall be called sons of God.",
+            "Blessed are those who are persecuted for righteousness' sake, for theirs is the kingdom of heaven."
+        ];
 
         const RADIO_STATIONS = [
             { id: 'off', name: 'RADIO: OFF', url: '' },
@@ -113,9 +128,9 @@
         };
 
         const VEHICLES = {
-            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, handling: 0.5, luck: 0.15, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank. Nimble handling halves hazard penalties.' },
-            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, handling: 1.0, luck: 0.0, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
-            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, handling: 1.5, luck: -0.1, desc: 'Slow & Steady. Massive gas tank means very few pit stops! Has room for all the Rocklin Solar Repair equipment.' }
+            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, handling: 0.5, luck: 0.15, capacity: 2, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank. Nimble handling halves hazard penalties. (Capacity: 2)' },
+            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, handling: 1.0, luck: 0.0, capacity: 5, desc: 'The balanced choice. Excellent gas mileage and moderate speed. (Capacity: 5)' },
+            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, handling: 1.5, luck: -0.1, capacity: 10, desc: 'Slow & Steady. Massive gas tank means very few pit stops! Has room for all the Rocklin Solar Repair equipment. (Capacity: 10)' }
         };
 
         const POI_STOPS = [
@@ -130,29 +145,24 @@
         ];
 
         const RANDOM_EVENTS = [
-            { id: 're1', title: 'Grape Juice Disaster!', text: 'Ava spilled sticky juice all over the backseat! Pull over to clean it up.', icon: '🧃', duration: 10 },
-            { id: 're2', title: 'Emergency Bathroom Break!', text: 'Granny really, really has to pee! Pull over NOW!', icon: '🚻', duration: 5 },
-            { id: 're3', title: 'Brain Freeze!', text: 'Brendan drank the gas station slushie too fast. Everyone needs a minute to recover.', icon: '🥶', duration: 5 },
-            { id: 're4', title: 'Moth Attack!', text: 'A giant moth flew into the car! Michelle is panicking! Roll down the windows!', icon: '🦋', duration: 10 },
-            { id: 're5', title: 'Dance Party!', text: "Desiree's favorite song came on. Mandatory car dance party!", icon: '💃', duration: 10 },
-            { id: 're6', title: 'Lost Shoe!', text: 'Lucas dangled his foot out the window and lost a shoe. Go back and get it!', icon: '👟', duration: 10 },
-            { id: 're7', title: 'Stinky Fart!', text: 'Who did that?! Brent blamed the dog! Pull over and air out the car immediately!', icon: '🦨', duration: 5 },
-            { id: 're8', title: 'Lost French Fry!', text: 'Jacob dropped the last golden french fry between the seats. Searching...', icon: '🍟', duration: 10 },
-            { id: 're9', title: 'GPS Arguments!', text: 'Quincy is aggressively arguing with the GPS lady! Pulling over to restore the peace.', icon: '🛑', duration: 5 },
-            { id: 're10', title: 'Work Traffic!', text: 'Natalie got us stuck behind a slow-moving Rocklin Solar Repair truck!', icon: '🚚', duration: 10 },
-            { id: 're11', title: 'Bee in the Car!', text: 'A bee flew through the window! Audra, stay perfectly still!', icon: '🐝', duration: 10 },
-            { id: 're12', title: 'Cheese Dust Explosion!', text: 'Zack squeezed the bag of cheesy poofs too hard and coated everything in orange dust!', icon: '🧀', duration: 10 },
-            { id: 're13', title: 'Lost Tablet!', text: 'Hailey\'s tablet slid under the seat into the abyss. Flashlights out!', icon: '📱', duration: 5 },
-            { id: 're14', title: 'Epic Hiccups!', text: 'Shanna got the loudest hiccups ever. Holding breath for a cure.', icon: '😮‍💨', duration: 5 },
-            { id: 're15', title: 'Smudged Glasses!', text: 'Zoe sneezed on her glasses. Pulling over to wipe them off!', icon: '👓', duration: 5 }
+            { id: 're1', title: 'Grape Juice Disaster!', text: '{NAME} spilled sticky juice all over the backseat! Pull over to clean it up.', icon: '🧃', duration: 10 },
+            { id: 're2', title: 'Emergency Bathroom Break!', text: '{NAME} really, really has to pee! Pull over NOW!', icon: '🚻', duration: 5 },
+            { id: 're3', title: 'Brain Freeze!', text: '{NAME} drank the gas station slushie too fast. Everyone needs a minute to recover.', icon: '🥶', duration: 5 },
+            { id: 're4', title: 'Moth Attack!', text: 'A giant moth flew into the car! {NAME} is panicking! Roll down the windows!', icon: '🦋', duration: 10 },
+            { id: 're5', title: 'Dance Party!', text: "{NAME}'s favorite song came on. Mandatory car dance party!", icon: '💃', duration: 10 },
+            { id: 're6', title: 'Lost Shoe!', text: '{NAME} dangled their foot out the window and lost a shoe. Go back and get it!', icon: '👟', duration: 10 },
+            { id: 're7', title: 'Stinky Fart!', text: 'Who did that?! {NAME} blamed the dog! Pull over and air out the car immediately!', icon: '🦨', duration: 5 },
+            { id: 're8', title: 'Lost French Fry!', text: '{NAME} dropped the last golden french fry between the seats. Searching...', icon: '🍟', duration: 10 },
+            { id: 're9', title: 'GPS Arguments!', text: '{NAME} is aggressively arguing with the GPS lady! Pulling over to restore the peace.', icon: '🛑', duration: 5 },
+            { id: 're10', title: 'Work Traffic!', text: '{NAME} got us stuck behind a slow-moving Rocklin Solar Repair truck!', icon: '🚚', duration: 10 },
+            { id: 're11', title: 'Bee in the Car!', text: 'A bee flew through the window! {NAME}, stay perfectly still!', icon: '🐝', duration: 10 },
+            { id: 're12', title: 'Cheese Dust Explosion!', text: '{NAME} squeezed the bag of cheesy poofs too hard and coated everything in orange dust!', icon: '🧀', duration: 10 },
+            { id: 're13', title: 'Lost Tablet!', text: "{NAME}'s tablet slid under the seat into the abyss. Flashlights out!", icon: '📱', duration: 5 },
+            { id: 're14', title: 'Epic Hiccups!', text: '{NAME} got the loudest hiccups ever. Holding breath for a cure.', icon: '😮‍💨', duration: 5 },
+            { id: 're15', title: 'Smudged Glasses!', text: '{NAME} sneezed on their glasses. Pulling over to wipe them off!', icon: '👓', duration: 5 }
         ];
 
         const DECISIONS = [
-            // Co-Driver Events
-            { id: 'codriver1', isCoDriver: true, text: "Zack is hitchhiking with his heavy luggage! Pick him up to help drive?", riskText: "Pick Him Up", safeText: "Leave Him", icon: "👍", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Zack joined! Splitting the driving duties reduces your fatigue drain." } : { success: false, msg: "NO ROOM!", effect: "lose_gas", subMsg: "His luggage didn't fit. You wasted 20 gas trying to pack it." } },
-            { id: 'codriver2', isCoDriver: true, text: "Michelle needs a ride to the next state! Add a co-driver?", riskText: "Pick Her Up", safeText: "Wave Politely", icon: "🙋‍♀️", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Michelle hopped in! More drivers means less energy loss." } : { success: false, msg: "LOST THE KEYS!", effect: "lose_gas", subMsg: "She dropped her keys under your seat. Burned gas idling." } },
-            { id: 'codriver3', isCoDriver: true, text: "Brendan is stranded at a bus stop. Offer him a seat to help drive?", riskText: "Pick Him Up", safeText: "Keep Driving", icon: "🚌", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "NEW CO-DRIVER!", effect: "add_codriver", subMsg: "Brendan takes the wheel! Your energy bar drains slower." } : { success: false, msg: "WRONG DIRECTION!", effect: "lose_gas", subMsg: "He made you drive three miles the wrong way first. Lost gas." } },
-
             // Points Vs Gas Dilemmas
             { id: 'pvg1', isPointsVsGas: true, icon: "🗺️", text: "The GPS says stay on the highway, but you see a dirt road that might save 10 minutes.", riskText: "Admit Defeat", safeText: "Stubbornly Commit", opt1: { pts: -300, gas: 0, msg: "DIGNITY LOST", subMsg: "Swallowed your pride and stuck to the highway. Tank is safe!" }, opt2: { pts: 0, gas: -40, msg: "STUCK IN MUD", subMsg: "Refused to ask for directions. Stuck behind a tractor!" } },
             { id: 'pvg2', isPointsVsGas: true, icon: "🎵", text: "Backseat passengers demand the aux cord to play 20 hours of terrible internet memes.", riskText: "Surrender Aux", safeText: "Fight for Control", opt1: { pts: -500, gas: 0, msg: "EARS BLEEDING", subMsg: "Your soul dies a little, but you maintain your driving speed." }, opt2: { pts: 0, gas: -25, msg: "SWERVING!", subMsg: "You swerve across the rumble strips aggressively slapping hands away!" } },
@@ -164,6 +174,12 @@
             { id: 'maga1', isMaga: true, text: "A MAGA guy in a tin-foil hat blocks the road, screaming that Rocklin Solar Repair panels are draining the sun's energy!", riskText: "Drop Truth & Facts!", safeText: "Agree to Disagree", icon: "🇺🇸", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "FACTS WON!", effect: "skip_drive", subMsg: "You explained thermodynamics. His brain short-circuited and he moved. Zoom!" } : { success: false, msg: "FAKE NEWS!", effect: "lose_gas", subMsg: "He yelled 'FAKE NEWS!' and siphoned your gas to power his bunker." } },
             { id: 'maga2', isMaga: true, text: "A MAGA protestor insists the Earth is flat and you're about to drive your Rocklin Solar truck off the edge.", riskText: "Show a Globe & Facts!", safeText: "Nod Slowly and Reverse", icon: "🌍", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "SCIENCE RULES!", effect: "skip_drive", subMsg: "Basic geometry saved the day! He stepped aside." } : { success: false, msg: "DO YOUR RESEARCH!", effect: "lose_gas", subMsg: "He forced you to watch a 3-hour YouTube video. Lost major gas." } },
             { id: 'maga3', isMaga: true, text: "A MAGA guy blocks the road claiming birds are government drones sent to spy on Rocklin Solar Repair installations.", riskText: "Hit Him with Facts!", safeText: "Pretend to be a Spy", icon: "🦅", resolve: (luck = 0) => Math.random() + luck > 0.4 ? { success: true, msg: "TRUTH BOMB!", effect: "skip_drive", subMsg: "You showed him an anatomy book. He ran away in fear." } : { success: false, msg: "THEY'RE WATCHING!", effect: "lose_gas", subMsg: "He threw a net over your car to protect you. Lost gas escaping." } },
+
+            // Jesus Encounter
+            { id: 'jesus1', isJesus: true, text: "A man in robes and sandals is hitchhiking on the side of the road. It's Jesus!", riskText: "Pull Over", safeText: "Keep Driving", icon: "🙏", resolve: (luck = 0) => {
+                const b = BEATITUDES[Math.floor(Math.random() * BEATITUDES.length)];
+                return { success: true, msg: "JESUS JOINED THE CAR!", effect: "add_jesus", subMsg: `"${b}"` };
+            }},
 
             // Standard Dilemmas
             { id: 'd1', text: "A family of bears are roasting marshmallows in the road.", riskText: "Make S'mores!", safeText: "Sneak Around", icon: "🐻", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Sugar rush! Zoomed ahead!", effect: "skip_drive" } : { success: false, msg: "They ate your snacks! Lost gas.", effect: "lose_gas" } },
@@ -289,13 +305,13 @@
             const [ghostData, setGhostData] = useState(null);
             const [confirmQuit, setConfirmQuit] = useState(false);
             
-            // Radio, Fatigue & Overheat State
+            // Radio, Fatigue & Passenger State
             const [overheat, setOverheat] = useState(0);
             const [isOverheated, setIsOverheated] = useState(false);
             const [lastTapTime, setLastTapTime] = useState(0);
             const [radioStationIdx, setRadioStationIdx] = useState(0);
             const [driverEnergy, setDriverEnergy] = useState(100);
-            const [coDrivers, setCoDrivers] = useState(0);
+            const [activePassengers, setActivePassengers] = useState([]);
             const audioRef = useRef(null);
             
             // Rally Encounter State
@@ -310,9 +326,11 @@
             const [hasFacedPoi, setHasFacedPoi] = useState(false);
             const [activePoi, setActivePoi] = useState(null);
             
-            // Food Economy State
+            // Food & Jesus State
             const [hasFacedFood, setHasFacedFood] = useState(false);
             const [illnessCountdown, setIllnessCountdown] = useState(null);
+            const [hasJesus, setHasJesus] = useState(false);
+            const [pendingStatus, setPendingStatus] = useState(null);
 
             // Rally Checkpoint States (Trivia, Reaction, Memory)
             const [activeTrivia, setActiveTrivia] = useState(null);
@@ -400,7 +418,9 @@
                         setOverheat(0);
                         setIsOverheated(false);
                         setDriverEnergy(100);
-                        setCoDrivers(0);
+                        setActivePassengers([]);
+                        setHasJesus(false);
+                        setPendingStatus(null);
                         setIllnessCountdown(null);
                         setLastTapTime(0);
                     }
@@ -475,7 +495,7 @@
             // Generic penalty/wait timer logic
             useEffect(() => {
                 let timer;
-                if (status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom') {
+                if (status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom' || status === 'boarding') {
                     if (refuelTimer > 0) {
                         timer = setTimeout(() => setRefuelTimer(prev => prev - 1), 1000);
                     } else {
@@ -549,6 +569,16 @@
                     setConfirmQuit(false);
                     setStatus('lobby');
                 } catch (e) { console.error(e); }
+            };
+
+            const handlePickUp = () => {
+                if (status !== 'driving') return;
+                const me = players[user?.uid] || {};
+                const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
+                
+                if (activePassengers.length + 1 < v.capacity) {
+                    setStatus('select_passenger');
+                }
             };
 
             const proceedToNextCheckpoint = async () => {
@@ -627,7 +657,7 @@
                 setOverheat(newHeat);
 
                 // Driver Energy (Fatigue) Logic
-                const energyDrain = 2.5 / (1 + coDrivers); // Co-drivers split the work
+                const energyDrain = 2.5 / (1 + activePassengers.length); // Co-drivers split the work
                 const newEnergy = Math.max(0, driverEnergy - energyDrain);
                 setDriverEnergy(newEnergy);
 
@@ -673,6 +703,7 @@
                     if (hasFacedMaga) {
                         availableDecisions = availableDecisions.filter(d => !d.isMaga);
                     } else if ((me.raceState?.checkpoint || 0) >= 2) {
+                        // Force a MAGA encounter if they haven't seen one yet and have reached state #3
                         const magaDecisions = availableDecisions.filter(d => d.isMaga);
                         if (magaDecisions.length > 0) {
                             availableDecisions = magaDecisions;
@@ -682,6 +713,7 @@
                     if (availableDecisions.length === 0) availableDecisions = DECISIONS.filter(d => !d.isMaga); 
                     
                     const picked = availableDecisions[Math.floor(Math.random() * availableDecisions.length)];
+
                     setUsedDecisions(prev => [...prev, picked.id]); 
                     setActiveDecision(picked);
                     setStatus('decision');
@@ -693,8 +725,14 @@
                 if (driveProgress + progressGain >= poiPoint && !hasFacedPoi && driveProgress < poiPoint) {
                     const pickedPoi = POI_STOPS[Math.floor(Math.random() * POI_STOPS.length)];
                     setActivePoi(pickedPoi);
-                    setStatus('poi');
                     setHasFacedPoi(true);
+                    if (hasJesus) {
+                        setHasJesus(false);
+                        setPendingStatus('poi');
+                        setStatus('jesus_exit');
+                    } else {
+                        setStatus('poi');
+                    }
                     return;
                 }
 
@@ -702,9 +740,18 @@
                 if (driveProgress + progressGain >= randomEventPoint && !hasFacedRandomEvent && driveProgress < randomEventPoint) {
                     let availableEvents = RANDOM_EVENTS.filter(e => !usedEvents.includes(e.id));
                     if (availableEvents.length === 0) availableEvents = RANDOM_EVENTS; 
+                    
                     const pickedEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+                    const eventNamePool = activePassengers.length > 0 ? activePassengers : FAMILY_NAMES;
+                    const randomName = eventNamePool[Math.floor(Math.random() * eventNamePool.length)];
+                    
+                    const personalizedEvent = {
+                        ...pickedEvent,
+                        text: pickedEvent.text ? pickedEvent.text.replace(/{NAME}/g, randomName) : pickedEvent.text
+                    };
+
                     setUsedEvents(prev => [...prev, pickedEvent.id]);
-                    setActiveRandomEvent(pickedEvent);
+                    setActiveRandomEvent(personalizedEvent);
                     setEventTimer(pickedEvent.duration);
                     setStatus('random_event');
                     setHasFacedRandomEvent(true);
@@ -713,13 +760,25 @@
 
                 const foodPoint = Math.floor(requiredTaps * 0.85);
                 if (driveProgress + progressGain >= foodPoint && !hasFacedFood && driveProgress < foodPoint) {
-                    setStatus('food_stop');
                     setHasFacedFood(true);
+                    if (hasJesus) {
+                        setHasJesus(false);
+                        setPendingStatus('food_stop');
+                        setStatus('jesus_exit');
+                    } else {
+                        setStatus('food_stop');
+                    }
                     return;
                 }
 
                 if (driveProgress + progressGain >= requiredTaps) {
-                    triggerCheckpointChallenge(route.states[me.raceState?.checkpoint || 0]);
+                    if (hasJesus) {
+                        setHasJesus(false);
+                        setPendingStatus('checkpoint');
+                        setStatus('jesus_exit');
+                    } else {
+                        triggerCheckpointChallenge(route.states[me.raceState?.checkpoint || 0]);
+                    }
                 } else {
                     setDriveProgress(prev => prev + progressGain);
                 }
@@ -761,7 +820,7 @@
                 if (!isRisk) {
                     setDecisionResultData({ 
                         msg: "PLAYED IT SAFE!", 
-                        subMsg: activeDecision.isMaga ? "You nodded slowly and avoided eye contact. Boring, but safe." : activeDecision.isCoDriver ? "They can catch the next bus. Your loss." : "Boring, but you didn't risk your gas.",
+                        subMsg: activeDecision.isMaga ? "You nodded slowly and avoided eye contact. Boring, but safe." : activeDecision.isJesus ? "You drove past the Son of God. Bold choice." : "Boring, but you didn't risk your gas.",
                         color: "text-gray-400" 
                     });
                 } else {
@@ -773,8 +832,8 @@
                     });
                     
                     if (result.success) {
-                        if (result.effect === 'add_codriver') {
-                            setCoDrivers(prev => prev + 1);
+                        if (result.effect === 'add_jesus') {
+                            setHasJesus(true);
                         } else {
                             const progressBoost = Math.floor(v.driveTaps * 0.40);
                             setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
@@ -796,6 +855,32 @@
                     if (newGas <= 0) { setReturnStatus('driving'); setRefuelTimer(15); setStatus('out_of_gas'); } 
                     else { setStatus('driving'); }
                 }, 3000);
+            };
+
+            const handleJesusExit = async (pts) => {
+                const me = players[user?.uid] || {};
+                try {
+                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                        'raceState.score': (me.raceState?.score || 0) + pts
+                    });
+                } catch(e){}
+
+                setDecisionResultData({ msg: "BLESSED!", subMsg: `+${pts} Points earned!`, color: "text-green-400" });
+                setStatus('decisionResult');
+
+                setTimeout(() => {
+                    setDecisionResultData(null);
+                    if (pendingStatus === 'poi') {
+                        setStatus('poi');
+                    } else if (pendingStatus === 'food_stop') {
+                        setStatus('food_stop');
+                    } else if (pendingStatus === 'checkpoint') {
+                        triggerCheckpointChallenge(activeRoute.states[me.raceState?.checkpoint || 0]);
+                    } else {
+                        setStatus('driving');
+                    }
+                    setPendingStatus(null);
+                }, 2000);
             };
 
             const handlePoiDecision = async (choice) => {
@@ -844,7 +929,7 @@
             };
 
             const handleFoodDecision = async (choice) => {
-                const people = 1 + coDrivers;
+                const people = 1 + activePassengers.length;
                 let costPts = 0;
                 let waitTime = 0;
                 let energyRestore = 0;
@@ -1244,6 +1329,7 @@
                                     <div className="text-center mb-6">
                                         <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 drop-shadow-lg">Road Trip Games</h1>
                                         <p className="text-gray-400 font-bold tracking-widest uppercase text-sm">Join the family!</p>
+                                        <p className="text-[10px] text-gray-600 font-bold tracking-widest mt-1">{GAME_VERSION}</p>
                                     </div>
                                     <form onSubmit={handleJoinGame} className="space-y-6">
                                         <div>
@@ -1311,7 +1397,8 @@
 
                                     {!me.raceState?.startTime ? (
                                         <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10 m-auto">
-                                            <h3 className="text-2xl font-black text-white mb-4 text-center uppercase tracking-widest">Pre-Race Setup</h3>
+                                            <h3 className="text-2xl font-black text-white mb-1 text-center uppercase tracking-widest">Pre-Race Setup</h3>
+                                            <p className="text-[10px] text-gray-500 font-bold text-center tracking-widest mb-4">{GAME_VERSION}</p>
                                             
                                             <div className="mb-6 bg-gray-900 border-2 border-blue-900 rounded-xl p-4 shadow-inner">
                                                 <h4 className="text-blue-400 font-black text-sm uppercase tracking-widest mb-2 flex items-center gap-2"><span>📋</span> How To Play</h4>
@@ -1410,22 +1497,50 @@
                                                 </div>
                                                 
                                                 {/* Dash Gauges */}
-                                                <div className="flex gap-4 w-full max-w-[300px]">
-                                                    {/* Overheat Gauge */}
-                                                    <div className="flex-1 flex flex-col items-center">
-                                                        <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
-                                                            <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
+                                                <div className="flex flex-col gap-2 w-full max-w-[300px]">
+                                                    <div className="flex gap-4 w-full">
+                                                        {/* Overheat Gauge */}
+                                                        <div className="flex-1 flex flex-col items-center">
+                                                            <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                                                                <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
+                                                            </div>
+                                                            <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENGINE TEMP</div>
                                                         </div>
-                                                        <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENGINE TEMP</div>
+                                                        
+                                                        {/* Fatigue/Energy Gauge */}
+                                                        <div className="flex-1 flex flex-col items-center">
+                                                            <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                                                                <div className={`h-full transition-all duration-75 ${driverEnergy < 25 ? 'bg-red-600 animate-pulse' : 'bg-blue-500'}`} style={{width: `${driverEnergy}%`}}></div>
+                                                            </div>
+                                                            <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENERGY</div>
+                                                        </div>
                                                     </div>
                                                     
-                                                    {/* Fatigue/Energy Gauge */}
-                                                    <div className="flex-1 flex flex-col items-center">
-                                                        <div className="w-full h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
-                                                            <div className={`h-full transition-all duration-75 ${driverEnergy < 25 ? 'bg-red-600 animate-pulse' : 'bg-blue-500'}`} style={{width: `${driverEnergy}%`}}></div>
-                                                        </div>
-                                                        <div className="text-[8px] mt-1 font-black tracking-widest uppercase text-gray-400">ENERGY {coDrivers > 0 && <span className="text-yellow-400">({coDrivers + 1} PPL)</span>}</div>
+                                                    {/* Passenger Display */}
+                                                    <div className="w-full mt-3 flex flex-wrap gap-1 justify-center">
+                                                        <span className="bg-blue-900 text-blue-200 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest border border-blue-700">
+                                                            Driver: You
+                                                        </span>
+                                                        {activePassengers.map((p, idx) => (
+                                                            <span key={idx} className="bg-green-900 text-green-200 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest border border-green-700 flex items-center gap-1">
+                                                                <span>👤</span> {p}
+                                                            </span>
+                                                        ))}
+                                                        {hasJesus && (
+                                                            <span className="bg-yellow-900 text-yellow-200 text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest border border-yellow-700 flex items-center gap-1 shadow-[0_0_8px_rgba(250,204,21,0.6)]">
+                                                                <span>🙏</span> Jesus
+                                                            </span>
+                                                        )}
                                                     </div>
+                                                    
+                                                    {/* Pick Up Button */}
+                                                    <button 
+                                                        onClick={handlePickUp} 
+                                                        disabled={activePassengers.length + 1 >= (myVehicleDef?.capacity || 2) || status !== 'driving'}
+                                                        className={`w-full mt-2 py-2 rounded-lg border-2 text-[10px] font-black tracking-widest transition-all ${(activePassengers.length + 1 >= (myVehicleDef?.capacity || 2)) ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed' : status !== 'driving' ? 'bg-green-900 border-green-800 text-gray-400 cursor-not-allowed' : 'bg-green-700 border-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)] active:scale-95'}`}
+                                                    >
+                                                        {activePassengers.length + 1 >= (myVehicleDef?.capacity || 2) ? 'CAR FULL' : `📞 CALL A FRIEND (3 SEC STOP) [${activePassengers.length + 1}/${myVehicleDef?.capacity}]`}
+                                                    </button>
                                                 </div>
                                             </div>
 
@@ -1491,27 +1606,67 @@
                                             </div>
 
                                             {/* ALERTS / OVERLAYS */}
+                                            {status === 'select_passenger' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl mb-2 shrink-0">📞</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Call a Friend</h3>
+                                                    <p className="text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Who do you want to pick up?</p>
+                                                    <div className="w-full grid grid-cols-2 gap-2 mt-auto shrink-0">
+                                                        {FAMILY_NAMES.filter(n => !activePassengers.includes(n)).map(name => (
+                                                            <button key={name} onClick={() => {
+                                                                setActivePassengers(prev => [...prev, name]);
+                                                                setReturnStatus('driving');
+                                                                setRefuelTimer(3);
+                                                                setStatus('boarding');
+                                                            }} className="bg-blue-700 border-b-4 border-blue-900 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-sm">
+                                                                {name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <button onClick={() => setStatus('driving')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs mt-4">Cancel</button>
+                                                </div>
+                                            )}
+
+                                            {status === 'jesus_exit' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-yellow-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl mb-2 shrink-0">🙏</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Jesus is getting out!</h3>
+                                                    <p className="text-yellow-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">You reached the next stop.</p>
+                                                    <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
+                                                        <button onClick={() => handleJesusExit(1000)} className="w-full bg-yellow-600 border-b-4 border-yellow-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">Make the Sign of the Cross</span>
+                                                            <span className="text-xs text-yellow-200 mt-1">(Father, Son, Holy Spirit)</span>
+                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">+1000 PTS</span>
+                                                        </button>
+                                                        <button onClick={() => handleJesusExit(500)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">Shake His Hand</span>
+                                                            <span className="text-[10px] font-bold text-gray-200 mt-1 bg-gray-800/50 px-2 py-0.5 rounded-full">+500 PTS</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {status === 'food_stop' && (
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-orange-900/95 backdrop-blur-md rounded-2xl border-2 border-orange-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🍔</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-1 leading-tight">Food Stop!</h3>
-                                                    <p className="text-orange-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Feeding {coDrivers + 1} People</p>
+                                                    <p className="text-orange-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Feeding {activePassengers.length + 1} People</p>
                                                     
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
                                                         <button onClick={() => handleFoodDecision('diner')} className="w-full bg-green-600 border-b-4 border-green-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                             <span className="font-black text-white text-sm sm:text-base">Sit-Down Diner</span>
                                                             <span className="text-xs text-green-200 mt-1">Safe. Restores 100% Energy.</span>
-                                                            <span className="text-[10px] font-bold text-green-100 mt-1 bg-green-800/50 px-2 py-0.5 rounded-full">-{400 * (1 + coDrivers)} PTS | {8 * (1 + coDrivers)} SEC</span>
+                                                            <span className="text-[10px] font-bold text-green-100 mt-1 bg-green-800/50 px-2 py-0.5 rounded-full">-{400 * (1 + activePassengers.length)} PTS | {8 * (1 + activePassengers.length)} SEC</span>
                                                         </button>
                                                         <button onClick={() => handleFoodDecision('fastfood')} className="w-full bg-yellow-600 border-b-4 border-yellow-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                             <span className="font-black text-white text-sm sm:text-base">Fast Food Drive-Thru</span>
                                                             <span className="text-xs text-yellow-200 mt-1">Restores 50% Energy. 15% chance of illness.</span>
-                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">-{150 * (1 + coDrivers)} PTS | {4 * (1 + coDrivers)} SEC</span>
+                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">-{150 * (1 + activePassengers.length)} PTS | {4 * (1 + activePassengers.length)} SEC</span>
                                                         </button>
                                                         <button onClick={() => handleFoodDecision('burrito')} className="w-full bg-red-600 border-b-4 border-red-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center mt-2">
                                                             <span className="font-black text-white text-sm sm:text-base">Gas Station Burrito</span>
                                                             <span className="text-xs text-red-200 mt-1">Restores 20% Energy. 40% chance of illness.</span>
-                                                            <span className="text-[10px] font-bold text-red-100 mt-1 bg-red-800/50 px-2 py-0.5 rounded-full">-{25 * (1 + coDrivers)} PTS | {2 * (1 + coDrivers)} SEC</span>
+                                                            <span className="text-[10px] font-bold text-red-100 mt-1 bg-red-800/50 px-2 py-0.5 rounded-full">-{25 * (1 + activePassengers.length)} PTS | {2 * (1 + activePassengers.length)} SEC</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1563,7 +1718,7 @@
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">{activeDecision.icon}</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activeDecision.text}</h3>
                                                     <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">
-                                                        {activeDecision.isMaga ? "CONSPIRACY CHECKPOINT!" : activeDecision.isCoDriver ? "HITCHHIKER EVENT!" : "Silly Situation!"}
+                                                        {activeDecision.isMaga ? "CONSPIRACY CHECKPOINT!" : activeDecision.isJesus ? "HOLY ENCOUNTER!" : "Silly Situation!"}
                                                     </p>
                                                     <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
                                                         <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base">
@@ -1595,13 +1750,13 @@
                                                 </div>
                                             )}
 
-                                            {(status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom') && (
-                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50 border-red-900">
+                                            {(status === 'out_of_gas' || status === 'refueling' || status === 'sleeping' || status === 'eating' || status === 'bathroom' || status === 'boarding') && (
+                                                <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50 ${status === 'boarding' ? 'border-green-500' : 'border-red-900'}`}>
                                                     <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">
-                                                        {status === 'sleeping' ? '😴' : status === 'eating' ? '🍔' : status === 'bathroom' ? '🚽' : '⛽'}
+                                                        {status === 'sleeping' ? '😴' : status === 'eating' ? '🍔' : status === 'bathroom' ? '🚽' : status === 'boarding' ? '📞' : '⛽'}
                                                     </div>
-                                                    <div className={`text-lg sm:text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : 'text-yellow-400'}`}>
-                                                        {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : status === 'refueling' ? 'PUMPING GAS...' : status === 'sleeping' ? 'PULLED OVER TO NAP' : status === 'eating' ? 'CHOWING DOWN...' : 'BATHROOM EMERGENCY!'}
+                                                    <div className={`text-lg sm:text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : status === 'boarding' ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                        {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : status === 'refueling' ? 'PUMPING GAS...' : status === 'sleeping' ? 'PULLED OVER TO NAP' : status === 'eating' ? 'CHOWING DOWN...' : status === 'boarding' ? 'BOARDING PASSENGER...' : 'BATHROOM EMERGENCY!'}
                                                     </div>
                                                     <div className="text-5xl sm:text-6xl font-mono font-black text-white py-4 tabular-nums shrink-0">
                                                         00:{String(refuelTimer).padStart(2, '0')}
@@ -1712,7 +1867,7 @@
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : (status === 'decision' || status === 'random_event' || status === 'poi' || status === 'food_stop' || status === 'illness_event') ? (
+                                    ) : (status === 'decision' || status === 'random_event' || status === 'poi' || status === 'food_stop' || status === 'illness_event' || status === 'select_passenger' || status === 'jesus_exit') ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                             <div className="text-purple-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
                                             <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Pedals Locked. Check Screen!</div>
