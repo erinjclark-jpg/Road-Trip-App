@@ -31,6 +31,34 @@
         .pedal-brake:active { box-shadow: inset 0px -3px 0px 0px rgba(0,0,0,0.4), 0px 4px 5px rgba(0,0,0,0.6); transform: translateY(7px); }
         
         ::-webkit-scrollbar { display: none; }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-2px, 0px) rotate(1deg); }
+            30% { transform: translate(2px, 1px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 1px) rotate(-1deg); }
+            60% { transform: translate(-2px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 1px) rotate(0deg); }
+            100% { transform: translate(1px, -1px) rotate(-1deg); }
+        }
+        .speed-shake { animation: shake 0.4s infinite; }
+
+        .speed-lines {
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(56, 189, 248, 0.08) 40px, rgba(56, 189, 248, 0.08) 80px);
+            background-size: 100% 200%;
+            animation: speedMove 0.3s linear infinite;
+            z-index: 0;
+        }
+        @keyframes speedMove {
+            0% { background-position: 0 -100%; }
+            100% { background-position: 0 0; }
+        }
     </style>
 </head>
 <body class="text-white h-[100dvh] w-full overflow-hidden">
@@ -49,7 +77,7 @@
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -78,10 +106,21 @@
         };
 
         const VEHICLES = {
-            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank.' },
-            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
-            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, desc: 'Slow & Steady. Massive gas tank means very few pit stops!' }
+            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, handling: 0.5, luck: 0.15, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank. Nimble handling halves hazard penalties.' },
+            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, handling: 1.0, luck: 0.0, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
+            rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, handling: 1.5, luck: -0.1, desc: 'Slow & Steady. Massive gas tank means very few pit stops! Clunky handling worsens hazards.' }
         };
+
+        const POI_STOPS = [
+            { id: 'poi1', localName: "Shanna's Roadside Cafe", localDesc: "Buy an amazing slice of homemade pie and support local!", localPts: 500, localGasCost: 15, corpName: "BurgerCorp Drive-Thru", corpDesc: "Eat a grey patty. Quick, but soul-crushing.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi2', localName: "Rob's Solar & Antiques", localDesc: "Fix a dashboard rattle and buy a weird lamp. Small business win!", localPts: 500, localGasCost: 15, corpName: "Mega-Mart Store", corpDesc: "Wander the fluorescent aisles looking for the restroom.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi3', localName: "Christina's Farm Stand", localDesc: "Buy fresh fruit, pet a weird goat, and tip the farmer!", localPts: 500, localGasCost: 15, corpName: "Snack-O-Sphere Corporate", corpDesc: "Buy incredibly stale and overpriced cheese puffs.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi4', localName: "Steve's Map & Guide Shop", localDesc: "Support a local guide and buy a cool handmade bumper sticker!", localPts: 500, localGasCost: 15, corpName: "Big Box Auto Store", corpDesc: "Stand in line for 20 minutes behind a guy buying one bolt.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi5', localName: "Mom & Pop's Tire Shop", localDesc: "Get a fresh set of tires from friendly mechanics who know your name.", localPts: 500, localGasCost: 15, corpName: "MegaTread Warehouse", corpDesc: "Buy plastic-wrapped tires from a kiosk. No eye contact.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi6', localName: "Grandma's Crafty Scents", localDesc: "Buy a hand-knitted lavender air freshener. Smells like heaven!", localPts: 500, localGasCost: 15, corpName: "ChemSmell Gas Station", corpDesc: "Buy a neon green pine tree that smells like a headache.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi7', localName: "High School Car Wash", localDesc: "Support the local marching band and get a sparkling clean car!", localPts: 500, localGasCost: 15, corpName: "Robo-Scrub 9000", corpDesc: "Machine scratches your paint while blasting sad elevator music.", corpPts: 50, corpGasCost: 5 },
+            { id: 'poi8', localName: "Local Indie Coffee Roaster", localDesc: "Sip a masterpiece pour-over and chat with the barista.", localPts: 500, localGasCost: 15, corpName: "CaffeineCorp Drive-Thru", corpDesc: "Lukewarm bean water served in a melting paper cup.", corpPts: 50, corpGasCost: 5 }
+        ];
 
         const RANDOM_EVENTS = [
             { id: 're1', title: 'Grape Juice Disaster!', text: 'Someone spilled sticky juice all over the backseat! Pull over to clean it up.', icon: '🧃', duration: 10 },
@@ -102,21 +141,21 @@
         ];
 
         const DECISIONS = [
-            { id: 'd1', text: "A family of bears are roasting marshmallows in the road.", riskText: "Make S'mores!", safeText: "Sneak Around", icon: "🐻", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Sugar rush! Zoomed ahead!", effect: "skip_drive" } : { success: false, msg: "They ate your snacks! Lost gas.", effect: "lose_gas" } },
-            { id: 'd2', text: "Aliens set up a glowing lemonade stand.", riskText: "Drink Lemonade", safeText: "Keep Driving", icon: "👽", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Space juice! Massive boost!", effect: "skip_drive" } : { success: false, msg: "Brain freeze! Lost gas.", effect: "lose_gas" } },
-            { id: 'd3', text: "A giant tumbleweed blocks the entire highway.", riskText: "Ram It!", safeText: "Wait for Wind", icon: "💨", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Busted through! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "It was solid wood! Lost gas.", effect: "lose_gas" } },
-            { id: 'd4', text: "Monkeys are throwing bananas from the trees.", riskText: "Catch Bananas", safeText: "Roll Up Windows", icon: "🐒", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Caught a golden banana! Zoom!", effect: "skip_drive" } : { success: false, msg: "Slipped on a peel! Lost gas.", effect: "lose_gas" } },
-            { id: 'd5', text: "A robot traffic cop challenges you to a dance battle.", riskText: "Dance Battle!", safeText: "Ignore Him", icon: "🤖", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Busted epic moves! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "Pulled a hamstring! Lost gas.", effect: "lose_gas" } },
-            { id: 'd6', text: "Bigfoot is hitchhiking with a cardboard sign.", riskText: "Pick Him Up", safeText: "Wave Politely", icon: "🦶", resolve: () => Math.random() > 0.5 ? { success: true, msg: "He knows a shortcut! Massive boost!", effect: "skip_drive" } : { success: false, msg: "He smells terrible! Lost gas.", effect: "lose_gas" } },
-            { id: 'd7', text: "The road turns into a giant piano keyboard.", riskText: "Play a Song", safeText: "Drive Slowly", icon: "🎹", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Played a masterpiece! Zoom!", effect: "skip_drive" } : { success: false, msg: "Hit a sour note! Tires popped.", effect: "lose_gas" } },
-            { id: 'd8', text: "A wizard asks for directions to the nearest bathroom.", riskText: "Help Wizard", safeText: "Pretend Not to Hear", icon: "🧙‍♂️", resolve: () => Math.random() > 0.5 ? { success: true, msg: "He teleported your car forward!", effect: "skip_drive" } : { success: false, msg: "Turned map into a frog. Lost gas.", effect: "lose_gas" } },
-            { id: 'd9', text: "A portal to a candy dimension opens on the highway.", riskText: "Drive In!", safeText: "Stay on Highway", icon: "🍭", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Cotton candy roads! Huge shortcut!", effect: "skip_drive" } : { success: false, msg: "Got stuck in licorice! Lost gas.", effect: "lose_gas" } },
-            { id: 'd10', text: "A sleeping dragon is blocking the bridge ahead.", riskText: "Tickle Its Nose", safeText: "Find Detour", icon: "🐉", resolve: () => Math.random() > 0.5 ? { success: true, msg: "It sneezed you across! Boost!", effect: "skip_drive" } : { success: false, msg: "It woke up cranky! Lost gas.", effect: "lose_gas" } },
-            { id: 'd11', text: "A flock of ostriches challenge you to a race.", riskText: "Race Them!", safeText: "Let Them Win", icon: "🦤", resolve: () => Math.random() > 0.5 ? { success: true, msg: "You won! Ostrich boost!", effect: "skip_drive" } : { success: false, msg: "Too fast! Engine overheated.", effect: "lose_gas" } },
-            { id: 'd12', text: "A pirate ship on wheels demands a toll.", riskText: "Board the Ship!", safeText: "Pay the Toll", icon: "🏴‍☠️", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Found buried treasure! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "Walked the plank! Lost gas.", effect: "lose_gas" } },
-            { id: 'd13', text: "A puddle of sticky pink bubblegum covers the road.", riskText: "Drive Fast!", safeText: "Edge Around", icon: "🫧", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Bounced right over it! Shortcut!", effect: "skip_drive" } : { success: false, msg: "Completely stuck! Burned gas.", effect: "lose_gas" } },
-            { id: 'd14', text: "A tornado made entirely of spaghetti is approaching!", riskText: "Drive Through!", safeText: "Take Detour", icon: "🌪️", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Delicious! Major shortcut!", effect: "skip_drive" } : { success: false, msg: "Car covered in sauce. Lost gas.", effect: "lose_gas" } },
-            { id: 'd15', text: "A giant chicken is crossing the road. Why?", riskText: "Ask the Chicken", safeText: "Just Wait", icon: "🐔", resolve: () => Math.random() > 0.5 ? { success: true, msg: "Rode on its back! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "It chased your car! Lost gas.", effect: "lose_gas" } }
+            { id: 'd1', text: "A family of bears are roasting marshmallows in the road.", riskText: "Make S'mores!", safeText: "Sneak Around", icon: "🐻", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Sugar rush! Zoomed ahead!", effect: "skip_drive" } : { success: false, msg: "They ate your snacks! Lost gas.", effect: "lose_gas" } },
+            { id: 'd2', text: "Aliens set up a glowing lemonade stand.", riskText: "Drink Lemonade", safeText: "Keep Driving", icon: "👽", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Space juice! Massive boost!", effect: "skip_drive" } : { success: false, msg: "Brain freeze! Lost gas.", effect: "lose_gas" } },
+            { id: 'd3', text: "A giant tumbleweed blocks the entire highway.", riskText: "Ram It!", safeText: "Wait for Wind", icon: "💨", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Busted through! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "It was solid wood! Lost gas.", effect: "lose_gas" } },
+            { id: 'd4', text: "Monkeys are throwing bananas from the trees.", riskText: "Catch Bananas", safeText: "Roll Up Windows", icon: "🐒", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Caught a golden banana! Zoom!", effect: "skip_drive" } : { success: false, msg: "Slipped on a peel! Lost gas.", effect: "lose_gas" } },
+            { id: 'd5', text: "A robot traffic cop challenges you to a dance battle.", riskText: "Dance Battle!", safeText: "Ignore Him", icon: "🤖", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Busted epic moves! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "Pulled a hamstring! Lost gas.", effect: "lose_gas" } },
+            { id: 'd6', text: "Bigfoot is hitchhiking with a cardboard sign.", riskText: "Pick Him Up", safeText: "Wave Politely", icon: "🦶", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "He knows a shortcut! Massive boost!", effect: "skip_drive" } : { success: false, msg: "He smells terrible! Lost gas.", effect: "lose_gas" } },
+            { id: 'd7', text: "The road turns into a giant piano keyboard.", riskText: "Play a Song", safeText: "Drive Slowly", icon: "🎹", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Played a masterpiece! Zoom!", effect: "skip_drive" } : { success: false, msg: "Hit a sour note! Tires popped.", effect: "lose_gas" } },
+            { id: 'd8', text: "A wizard asks for directions to the nearest bathroom.", riskText: "Help Wizard", safeText: "Pretend Not to Hear", icon: "🧙‍♂️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "He teleported your car forward!", effect: "skip_drive" } : { success: false, msg: "Turned map into a frog. Lost gas.", effect: "lose_gas" } },
+            { id: 'd9', text: "A portal to a candy dimension opens on the highway.", riskText: "Drive In!", safeText: "Stay on Highway", icon: "🍭", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Cotton candy roads! Huge shortcut!", effect: "skip_drive" } : { success: false, msg: "Got stuck in licorice! Lost gas.", effect: "lose_gas" } },
+            { id: 'd10', text: "A sleeping dragon is blocking the bridge ahead.", riskText: "Tickle Its Nose", safeText: "Find Detour", icon: "🐉", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "It sneezed you across! Boost!", effect: "skip_drive" } : { success: false, msg: "It woke up cranky! Lost gas.", effect: "lose_gas" } },
+            { id: 'd11', text: "A flock of ostriches challenge you to a race.", riskText: "Race Them!", safeText: "Let Them Win", icon: "🦤", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "You won! Ostrich boost!", effect: "skip_drive" } : { success: false, msg: "Too fast! Engine overheated.", effect: "lose_gas" } },
+            { id: 'd12', text: "A pirate ship on wheels demands a toll.", riskText: "Board the Ship!", safeText: "Pay the Toll", icon: "🏴‍☠️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Found buried treasure! Skipped traffic!", effect: "skip_drive" } : { success: false, msg: "Walked the plank! Lost gas.", effect: "lose_gas" } },
+            { id: 'd13', text: "A puddle of sticky pink bubblegum covers the road.", riskText: "Drive Fast!", safeText: "Edge Around", icon: "🫧", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Bounced right over it! Shortcut!", effect: "skip_drive" } : { success: false, msg: "Completely stuck! Burned gas.", effect: "lose_gas" } },
+            { id: 'd14', text: "A tornado made entirely of spaghetti is approaching!", riskText: "Drive Through!", safeText: "Take Detour", icon: "🌪️", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Delicious! Major shortcut!", effect: "skip_drive" } : { success: false, msg: "Car covered in sauce. Lost gas.", effect: "lose_gas" } },
+            { id: 'd15', text: "A giant chicken is crossing the road. Why?", riskText: "Ask the Chicken", safeText: "Just Wait", icon: "🐔", resolve: (luck = 0) => Math.random() + luck > 0.5 ? { success: true, msg: "Rode on its back! Skipped ahead!", effect: "skip_drive" } : { success: false, msg: "It chased your car! Lost gas.", effect: "lose_gas" } }
         ];
 
         const STATE_DATA = {
@@ -202,7 +241,7 @@
             const [user, setUser] = useState(null);
             const [players, setPlayers] = useState({});
             const [plates, setPlates] = useState({});
-            const [raceData, setRaceData] = useState(null);
+            const [runTimes, setRunTimes] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
             const [error, setError] = useState(null);
             
@@ -210,13 +249,17 @@
             
             // Setup Profile State
             const [joinName, setJoinName] = useState('');
-            const [selectedVehicle, setSelectedVehicle] = useState('prius');
             const [isJoining, setIsJoining] = useState(false);
             
+            // Pre-Race Selection State
+            const [localVehicle, setLocalVehicle] = useState('prius');
+            const [localRoute, setLocalRoute] = useState('northern');
+
             // Plates State
             const [claimingState, setClaimingState] = useState(null);
             const [unclaimingState, setUnclaimingState] = useState(null);
             const [isResettingPlates, setIsResettingPlates] = useState(false);
+            const [confirmResetPlates, setConfirmResetPlates] = useState(false);
 
             // Rally Core State
             const [status, setStatus] = useState('lobby'); 
@@ -226,8 +269,15 @@
             const [refuelTimer, setRefuelTimer] = useState(0);
             const [simulatedSpeed, setSimulatedSpeed] = useState(0);
             const [currentTime, setCurrentTime] = useState('00:00.0');
+            const [ghostPercent, setGhostPercent] = useState(null);
             const [confirmQuit, setConfirmQuit] = useState(false);
-            const [quitRaceId, setQuitRaceId] = useState(null);
+            
+            // Sweet Spot & Overheat State
+            const [overheat, setOverheat] = useState(0);
+            const [isOverheated, setIsOverheated] = useState(false);
+            const [sweetSpot, setSweetSpot] = useState(false);
+            const [lastTapTime, setLastTapTime] = useState(0);
+            const [showPerfectShift, setShowPerfectShift] = useState(false);
             
             // Rally Encounter State
             const [usedDecisions, setUsedDecisions] = useState([]);
@@ -238,12 +288,24 @@
             const [hasFacedRandomEvent, setHasFacedRandomEvent] = useState(false);
             const [activeRandomEvent, setActiveRandomEvent] = useState(null);
             const [eventTimer, setEventTimer] = useState(0);
+            const [hasFacedPoi, setHasFacedPoi] = useState(false);
+            const [activePoi, setActivePoi] = useState(null);
             
-            // Rally Trivia State
+            // Rally Checkpoint States (Trivia, Reaction, Memory)
             const [activeTrivia, setActiveTrivia] = useState(null);
             const [triviaStep, setTriviaStep] = useState(0); 
             const [triviaMsg, setTriviaMsg] = useState(null);
+            const [reactionState, setReactionState] = useState('wait');
+            const reactionTimerRef = useRef(null);
+            const reactionFailTimerRef = useRef(null);
+            const [memorySeq, setMemorySeq] = useState([]);
+            const [playerSeq, setPlayerSeq] = useState([]);
+            const [memoryMsg, setMemoryMsg] = useState(null);
             
+            // Leaderboard State
+            const [leaderboardView, setLeaderboardView] = useState('plates');
+            const [leaderboardRouteFilter, setLeaderboardRouteFilter] = useState('northern');
+
             useEffect(() => {
                 try {
                     const fbApp = firebaseModules.initializeApp(firebaseConfig);
@@ -287,27 +349,17 @@
                 const unsubPlates = onSnapshot(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'plates'), (snap) => {
                     const p = {}; snap.forEach(d => p[d.id] = d.data()); setPlates(p);
                 });
-                const unsubRace = onSnapshot(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), (doc) => {
-                    if (doc.exists()) setRaceData(doc.data()); else setRaceData({ active: false });
+                const unsubRuns = onSnapshot(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'run_times'), (snap) => {
+                    const r = []; snap.forEach(d => r.push({id: d.id, ...d.data()})); setRunTimes(r);
                 });
                 
-                return () => { unsubPlayers(); unsubPlates(); unsubRace(); };
+                return () => { unsubPlayers(); unsubPlates(); unsubRuns(); };
             }, [user, appDb]);
 
             useEffect(() => {
-                const globalStart = raceData?.globalStartTime;
                 const me = players[user?.uid] || {};
-
-                // 1. Join race if global start is triggered and we haven't joined yet
-                if (globalStart && me.raceState && !me.raceState.startTime && quitRaceId !== globalStart) {
-                    if (user?.uid && appDb) {
-                        updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                            'raceState.startTime': globalStart, 'raceState.finishTime': null, 'raceState.checkpoint': 0
-                        }).catch(e => console.error("Error auto-joining race:", e));
-                    }
-                }
-
-                // 2. State Sync: Ensure local status matches Database Reality (Fixes Zombie Lobby)
+                
+                // State Sync: Ensure local status matches Database Reality
                 if (me.raceState?.startTime) {
                     if (me.raceState.finishTime && status !== 'finished') {
                         setStatus('finished');
@@ -317,41 +369,43 @@
                         setDriveProgress(0);
                         setHasFacedDecision(false);
                         setHasFacedRandomEvent(false);
+                        setHasFacedPoi(false);
                         setUsedDecisions([]);
                         setUsedEvents([]);
                         setGasLevel(v.gasTank);
+                        setOverheat(0);
+                        setIsOverheated(false);
+                        setLastTapTime(0);
                     }
                 } else if (status !== 'lobby') {
                     setStatus('lobby');
                 }
-            }, [raceData?.globalStartTime, status, players, user?.uid, appDb, quitRaceId]);
-            
-            // Safety Net: Kick ghost drivers if the global race gets cancelled
-            useEffect(() => {
-                const me = players[user?.uid] || {};
-                if (raceData && !raceData.active && me.raceState?.startTime) {
-                    if (appDb && user?.uid) {
-                        updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                            'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0
-                        }).catch(e => console.error(e));
-                    }
-                    setStatus('lobby');
-                }
-            }, [raceData?.active, players, user?.uid, appDb]);
+            }, [status, players, user?.uid, appDb]);
 
             useEffect(() => {
                 const me = players[user?.uid] || {};
                 if (!me.raceState?.startTime) return;
 
+                const bestRun = runTimes.filter(r => r.routeId === me.raceState.routeId).sort((a,b) => b.score - a.score || a.timeMs - b.timeMs)[0];
+
                 const interval = setInterval(() => {
+                    let elapsedMs = 0;
                     if (me.raceState.finishTime) {
-                        setCurrentTime(formatTime(me.raceState.finishTime - me.raceState.startTime));
+                        elapsedMs = me.raceState.finishTime - me.raceState.startTime;
                     } else {
-                        setCurrentTime(formatTime(Date.now() - me.raceState.startTime));
+                        elapsedMs = Date.now() - me.raceState.startTime;
+                    }
+                    setCurrentTime(formatTime(elapsedMs));
+
+                    if (bestRun && !me.raceState.finishTime) {
+                        const percent = Math.min(100, (elapsedMs / bestRun.timeMs) * 100);
+                        setGhostPercent(percent);
+                    } else if (!bestRun) {
+                        setGhostPercent(null);
                     }
                 }, 100);
                 return () => clearInterval(interval);
-            }, [players, user?.uid]);
+            }, [players, user?.uid, runTimes]);
 
             useEffect(() => {
                 if (simulatedSpeed > 0 && status === 'driving') {
@@ -361,6 +415,36 @@
                     setSimulatedSpeed(0);
                 }
             }, [simulatedSpeed, status]);
+
+            // Overheat Cooldown Logic
+            useEffect(() => {
+                let timer;
+                if (isOverheated) {
+                    timer = setTimeout(() => {
+                        setIsOverheated(false);
+                        setOverheat(0);
+                    }, 2500); // 2.5 second penalty
+                } else if (overheat > 0 && status === 'driving') {
+                    timer = setTimeout(() => {
+                        setOverheat(prev => Math.max(0, prev - 2));
+                    }, 50); // cooldown over time
+                }
+                return () => clearTimeout(timer);
+            }, [isOverheated, overheat, status]);
+
+            // Sweet Spot Interval Logic
+            useEffect(() => {
+                let interval;
+                if (status === 'driving' && !isOverheated) {
+                    interval = setInterval(() => {
+                        setSweetSpot(true);
+                        setTimeout(() => setSweetSpot(false), 600); // Sweet spot open for 600ms
+                    }, 2000 + Math.random() * 3000);
+                } else {
+                    setSweetSpot(false);
+                }
+                return () => clearInterval(interval);
+            }, [status, isOverheated]);
 
             useEffect(() => {
                 let timer;
@@ -398,75 +482,114 @@
                 const colorIndex = Object.keys(players).length % PLAYER_COLORS.length;
                 try {
                     await setDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
-                        uid: user.uid, name: joinName.trim(), vehicleId: selectedVehicle,
+                        uid: user.uid, name: joinName.trim(), vehicleId: localVehicle,
                         color: PLAYER_COLORS[colorIndex], joinedAt: Date.now(),
                         bingoBoard: generateBingoBoard(), bingoMarks: [12], plateWins: 0,
-                        raceState: { startTime: null, finishTime: null, checkpoint: 0 }
+                        raceState: { startTime: null, finishTime: null, checkpoint: 0, routeId: null, score: 0 }
                     });
                 } catch (err) { console.error(err); }
                 setIsJoining(false);
             };
 
-            const createNewRace = async (routeId = 'northern') => {
-                Object.keys(players).forEach(async (uid) => {
-                    try {
-                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', uid), { 
-                            'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0
-                        });
-                    } catch (e) {}
-                });
-                await setDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), {
-                    active: true, routeId: routeId, globalStartTime: null
-                });
-                setStatus('lobby');
-            };
-
-            const executeGlobalStart = async () => {
-                await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { globalStartTime: Date.now() });
-            };
-
-            const handleChangeRoute = async () => {
-                if (!appDb) return;
+            const startSoloRace = async () => {
+                if (!user || !appDb) return;
                 try {
-                    // Global shutdown ends it safely for everyone
-                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { active: false, globalStartTime: null });
-                } catch(e) {}
+                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                        vehicleId: localVehicle,
+                        'raceState.routeId': localRoute,
+                        'raceState.startTime': Date.now(),
+                        'raceState.finishTime': null,
+                        'raceState.checkpoint': 0,
+                        'raceState.score': 0
+                    });
+                    setStatus('driving');
+                } catch(e) { console.error(e); }
             };
 
             const executeDropOut = async () => {
                 if (!user || !appDb) return;
                 try {
-                    const me = players[user.uid];
-                    if (!me?.raceState?.startTime) {
-                        setConfirmQuit(false);
-                        return;
-                    }
-                    
-                    const otherActiveRacers = Object.values(players).filter(p => p.uid !== user.uid && p.raceState?.startTime);
-                    
-                    if (otherActiveRacers.length === 0) {
-                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { active: false, globalStartTime: null });
-                    }
-                    
                     await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 
-                        'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0 
+                        'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0, 'raceState.routeId': null, 'raceState.score': 0
                     });
-                    
-                    setQuitRaceId(raceData?.globalStartTime);
                     setConfirmQuit(false);
                     setStatus('lobby');
                 } catch (e) { console.error(e); }
             };
 
-            const handleDrive = () => {
-                if (status !== 'driving') return;
+            const proceedToNextCheckpoint = async () => {
                 const me = players[user?.uid] || {};
-                const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
-                const route = raceData?.routeId ? ROUTES[raceData.routeId] : null;
+                const route = me.raceState?.routeId ? ROUTES[me.raceState.routeId] : null;
+                if (!route) return;
+
+                const nextCheckpoint = (me.raceState?.checkpoint || 0) + 1;
+                const isFinished = nextCheckpoint >= route.states.length;
+                try {
+                    const updates = { 'raceState.checkpoint': nextCheckpoint };
+                    if (isFinished) {
+                        const finishTime = Date.now();
+                        updates['raceState.finishTime'] = finishTime;
+                        setStatus('finished');
+                        
+                        const runRef = doc(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'run_times'));
+                        await setDoc(runRef, {
+                            uid: user.uid,
+                            name: me.name,
+                            vehicleId: me.vehicleId,
+                            routeId: me.raceState.routeId,
+                            timeMs: finishTime - me.raceState.startTime,
+                            score: me.raceState.score || 0,
+                            timestamp: finishTime
+                        });
+                    } else {
+                        setStatus('driving');
+                        setHasFacedDecision(false);
+                        setHasFacedRandomEvent(false);
+                        setHasFacedPoi(false);
+                    }
+                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), updates);
+                } catch (e) {}
+            };
+
+            const handleDrive = () => {
+                if (status !== 'driving' || isOverheated) return;
+                const me = players[user?.uid] || {};
+                const v = VEHICLES[me.vehicleId || localVehicle] || VEHICLES['prius'];
+                const route = me.raceState?.routeId ? ROUTES[me.raceState.routeId] : null;
                 if (!route) return;
                 
+                const now = Date.now();
+                const tapSpeed = now - (lastTapTime || now - 1000);
+                setLastTapTime(now);
+
+                // Overheat logic: tapping faster than 250ms increases heat rapidly
+                let newHeat = overheat;
+                if (tapSpeed < 250) {
+                    newHeat = Math.min(100, overheat + 12);
+                } else {
+                    newHeat = Math.max(0, overheat - 5);
+                }
+                
+                if (newHeat >= 100) {
+                    setOverheat(100);
+                    setIsOverheated(true);
+                    return;
+                }
+                setOverheat(newHeat);
+
+                let progressGain = 1;
+                let gasCost = 2;
+
+                if (sweetSpot) {
+                    progressGain = 2; // Perfect shift!
+                    gasCost = 1; // Save gas on perfect shifts
+                    setShowPerfectShift(true);
+                    setTimeout(() => setShowPerfectShift(false), 500);
+                    setSweetSpot(false); // consume the sweet spot
+                }
+
                 setSimulatedSpeed(prev => Math.min(prev + 18, 85) + Math.floor(Math.random() * 4));
-                const newGas = Math.max(0, gasLevel - 2);
+                const newGas = Math.max(0, gasLevel - gasCost);
                 setGasLevel(newGas);
                 
                 if (newGas <= 0) { 
@@ -479,7 +602,7 @@
                 let requiredTaps = v.driveTaps;
                 
                 const decisionPoint = Math.floor(requiredTaps * 0.30); 
-                if (driveProgress + 1 === decisionPoint && !hasFacedDecision) {
+                if (driveProgress + progressGain >= decisionPoint && !hasFacedDecision && driveProgress < decisionPoint) {
                     let availableDecisions = DECISIONS.filter(d => !usedDecisions.includes(d.id));
                     if (availableDecisions.length === 0) availableDecisions = DECISIONS; 
                     const picked = availableDecisions[Math.floor(Math.random() * availableDecisions.length)];
@@ -490,8 +613,17 @@
                     return;
                 }
 
+                const poiPoint = Math.floor(requiredTaps * 0.50);
+                if (driveProgress + progressGain >= poiPoint && !hasFacedPoi && driveProgress < poiPoint) {
+                    const pickedPoi = POI_STOPS[Math.floor(Math.random() * POI_STOPS.length)];
+                    setActivePoi(pickedPoi);
+                    setStatus('poi');
+                    setHasFacedPoi(true);
+                    return;
+                }
+
                 const randomEventPoint = Math.floor(requiredTaps * 0.70);
-                if (driveProgress + 1 === randomEventPoint && !hasFacedRandomEvent) {
+                if (driveProgress + progressGain >= randomEventPoint && !hasFacedRandomEvent && driveProgress < randomEventPoint) {
                     let availableEvents = RANDOM_EVENTS.filter(e => !usedEvents.includes(e.id));
                     if (availableEvents.length === 0) availableEvents = RANDOM_EVENTS; 
                     const pickedEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
@@ -503,30 +635,44 @@
                     return;
                 }
 
-                if (driveProgress + 1 >= requiredTaps) {
-                    triggerTrivia(route.states[me.raceState?.checkpoint || 0], 0);
+                if (driveProgress + progressGain >= requiredTaps) {
+                    triggerCheckpointChallenge(route.states[me.raceState?.checkpoint || 0]);
                 } else {
-                    setDriveProgress(prev => prev + 1);
+                    setDriveProgress(prev => prev + progressGain);
                 }
             };
 
-            const handleDecision = (isRisk) => {
+            const handleDecision = async (isRisk) => {
                 if (status !== 'decision') return;
                 const me = players[user?.uid] || {};
                 const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
                 
                 let newGas = gasLevel;
                 if (!isRisk) {
-                    setDecisionResultData({ msg: "PLAYED IT SAFE!", color: "text-gray-400" });
+                    setDecisionResultData({ 
+                        msg: "PLAYED IT SAFE!", 
+                        subMsg: "Boring, but you didn't risk your gas.",
+                        color: "text-gray-400" 
+                    });
                 } else {
-                    const result = activeDecision.resolve();
-                    setDecisionResultData({ msg: result.success ? "SUCCESS!" : "FAILED!", color: result.success ? "text-green-400" : "text-red-500" });
+                    const result = activeDecision.resolve(v.luck || 0);
+                    setDecisionResultData({ 
+                        msg: result.success ? "SUCCESS!" : "FAILED!", 
+                        subMsg: result.msg,
+                        color: result.success ? "text-green-400" : "text-red-500" 
+                    });
+                    
                     if (result.success) {
                         const progressBoost = Math.floor(v.driveTaps * 0.40);
                         setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
+                        try {
+                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                                'raceState.score': (me.raceState?.score || 0) + 200
+                            });
+                        } catch(e){}
                     } else {
                         if (result.effect === 'lose_gas') {
-                            const penalty = Math.floor(v.gasTank * 0.30);
+                            const penalty = Math.floor(v.gasTank * 0.30 * (v.handling || 1));
                             newGas = Math.max(0, gasLevel - penalty);
                             setGasLevel(newGas);
                         }
@@ -544,7 +690,70 @@
                     } else {
                         setStatus('driving');
                     }
-                }, 1500);
+                }, 3000);
+            };
+
+            const handlePoiDecision = async (choice) => {
+                if (status !== 'poi') return;
+                const me = players[user?.uid] || {};
+                let pointsGained = 0;
+                let gasCost = 0;
+                let msg = "";
+
+                if (choice === 'local') {
+                    pointsGained = activePoi.localPts;
+                    gasCost = activePoi.localGasCost;
+                    msg = "Supported Small Business! +500 PTS";
+                } else if (choice === 'corp') {
+                    pointsGained = activePoi.corpPts;
+                    gasCost = activePoi.corpGasCost;
+                    msg = "Corporate stop. It was fine. +50 PTS";
+                } else {
+                    msg = "Skipped the stop. Kept the momentum going!";
+                }
+
+                const newGas = Math.max(0, gasLevel - gasCost);
+                setGasLevel(newGas);
+
+                if (pointsGained > 0) {
+                    try {
+                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                            'raceState.score': (me.raceState?.score || 0) + pointsGained
+                        });
+                    } catch(e){}
+                }
+
+                setDecisionResultData({
+                    msg: msg,
+                    subMsg: choice === 'skip' ? "Saved gas, but earned no points." : `Lost ${gasCost} gas.`,
+                    color: choice === 'local' ? "text-green-400" : choice === 'corp' ? "text-yellow-400" : "text-gray-400"
+                });
+                setStatus('decisionResult');
+
+                setTimeout(() => {
+                    setDecisionResultData(null);
+                    if (newGas <= 0) {
+                        setReturnStatus('driving');
+                        setRefuelTimer(15);
+                        setStatus('out_of_gas');
+                    } else {
+                        setStatus('driving');
+                    }
+                }, 3000);
+            };
+
+            const triggerCheckpointChallenge = (stateAbbr) => {
+                const types = ['trivia', 'reaction', 'memory'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                setDriveProgress(0);
+                
+                if (type === 'trivia') {
+                    triggerTrivia(stateAbbr, 0);
+                } else if (type === 'reaction') {
+                    startReactionTest();
+                } else if (type === 'memory') {
+                    startMemoryGame();
+                }
             };
 
             const triggerTrivia = (stateAbbr, stepNum) => {
@@ -552,45 +761,36 @@
                 const shuffledOpts = [...raw.opts].map((text, i) => ({ text, isCorrect: i === raw.a })).sort(() => Math.random() - 0.5);
                 setActiveTrivia({ q: raw.q, opts: shuffledOpts });
                 setTriviaStep(stepNum);
-                setDriveProgress(0);
                 setStatus('trivia');
             };
 
             const handleTriviaAnswer = async (isCorrect) => {
                 const me = players[user?.uid] || {};
                 const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
-                const route = raceData?.routeId ? ROUTES[raceData.routeId] : null;
+                const route = me.raceState?.routeId ? ROUTES[me.raceState.routeId] : null;
                 if (!route) return;
                 
                 let newGas = gasLevel;
                 if (isCorrect) {
-                    setTriviaMsg("CORRECT! 🎉");
+                    setTriviaMsg("CORRECT! +1000 PTS 🎉");
+                    try {
+                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                            'raceState.score': (me.raceState?.score || 0) + 1000
+                        });
+                    } catch(e){}
                     setTimeout(async () => {
                         setTriviaMsg(null);
                         if (triviaStep === 0) {
                             triggerTrivia(route.states[me.raceState?.checkpoint || 0], 1); 
                         } else {
-                            const nextCheckpoint = (me.raceState?.checkpoint || 0) + 1;
-                            const isFinished = nextCheckpoint >= route.states.length;
-                            try {
-                                const updates = { 'raceState.checkpoint': nextCheckpoint };
-                                if (isFinished) {
-                                    updates['raceState.finishTime'] = Date.now();
-                                    setStatus('finished');
-                                } else {
-                                    setStatus('driving');
-                                    setHasFacedDecision(false);
-                                    setHasFacedRandomEvent(false);
-                                }
-                                await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), updates);
-                            } catch (e) {}
+                            await proceedToNextCheckpoint();
                         }
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    const penalty = Math.floor(v.gasTank * 0.25); 
+                    const penalty = Math.floor(v.gasTank * 0.25 * (v.handling || 1)); 
                     newGas = Math.max(0, gasLevel - penalty);
                     setGasLevel(newGas);
-                    setTriviaMsg(`WRONG! -25% GAS ⛽`);
+                    setTriviaMsg(`WRONG! ⛽ Penalty`);
                     setTimeout(() => {
                         setTriviaMsg(null);
                         if (newGas <= 0) {
@@ -599,6 +799,119 @@
                             setStatus('out_of_gas');
                         }
                     }, 2000); 
+                }
+            };
+
+            const startReactionTest = () => {
+                setStatus('reaction');
+                setReactionState('wait');
+                setTriviaMsg("Get Ready...");
+                
+                setTimeout(() => {
+                    setReactionState('red');
+                    setTriviaMsg(null);
+                    const delay = 1500 + Math.random() * 2000;
+                    
+                    reactionTimerRef.current = setTimeout(() => {
+                        setReactionState('green');
+                        reactionFailTimerRef.current = setTimeout(() => {
+                            handleReactionClick(false, true); 
+                        }, 700);
+                    }, delay);
+                }, 2500); // 2.5s for instructions
+            };
+
+            const handleReactionClick = (clickedEarly = false, missed = false) => {
+                if (status !== 'reaction') return;
+                clearTimeout(reactionTimerRef.current);
+                clearTimeout(reactionFailTimerRef.current);
+                
+                const me = players[user?.uid] || {};
+                const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
+                
+                if (clickedEarly || missed) {
+                    const penalty = Math.floor(v.gasTank * 0.20 * (v.handling || 1));
+                    setGasLevel(prev => Math.max(0, prev - penalty));
+                    setReactionState('result');
+                    setTriviaMsg(clickedEarly ? "TOO EARLY! ⛽ Penalty" : "TOO SLOW! ⛽ Penalty");
+                    setTimeout(async () => {
+                        setTriviaMsg(null);
+                        if (gasLevel - penalty <= 0) {
+                            setReturnStatus('driving');
+                            setRefuelTimer(15);
+                            setStatus('out_of_gas');
+                        } else {
+                            await proceedToNextCheckpoint();
+                        }
+                    }, 2000);
+                } else {
+                    setReactionState('result');
+                    setTriviaMsg("PERFECT REACTION! +1000 PTS 🎉");
+                    updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                        'raceState.score': (me.raceState?.score || 0) + 1000
+                    }).catch(e=>{});
+                    setTimeout(async () => {
+                        setTriviaMsg(null);
+                        await proceedToNextCheckpoint();
+                    }, 1500);
+                }
+            };
+
+            const startMemoryGame = () => {
+                setStatus('memory');
+                const seq = [Math.floor(Math.random()*4), Math.floor(Math.random()*4), Math.floor(Math.random()*4)];
+                setMemorySeq(seq);
+                setPlayerSeq([]);
+                setMemoryMsg("GET READY...");
+                
+                setTimeout(() => {
+                    let step = 0;
+                    const interval = setInterval(() => {
+                        if (step < seq.length) {
+                            setMemoryMsg(`BEEP: ${seq[step] + 1}`);
+                            step++;
+                        } else {
+                            clearInterval(interval);
+                            setMemoryMsg("YOUR TURN!");
+                        }
+                    }, 800);
+                }, 2500); // 2.5s for instructions
+            };
+
+            const handleMemoryClick = (val) => {
+                if (memoryMsg !== "YOUR TURN!") return;
+                const newSeq = [...playerSeq, val];
+                setPlayerSeq(newSeq);
+                
+                const me = players[user?.uid] || {};
+                const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
+                
+                if (newSeq[newSeq.length-1] !== memorySeq[newSeq.length-1]) {
+                    const penalty = Math.floor(v.gasTank * 0.20 * (v.handling || 1));
+                    setGasLevel(prev => Math.max(0, prev - penalty));
+                    setMemoryMsg("WRONG SEQUENCE! ⛽ Penalty");
+                    setTimeout(async () => {
+                        setMemoryMsg(null);
+                        if (gasLevel - penalty <= 0) {
+                            setReturnStatus('driving');
+                            setRefuelTimer(15);
+                            setStatus('out_of_gas');
+                        } else {
+                            await proceedToNextCheckpoint();
+                        }
+                    }, 2000);
+                    return;
+                }
+                
+                if (newSeq.length === memorySeq.length) {
+                    setMemoryMsg("ENGINE RESTARTED! +1000 PTS 🎉");
+                    updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                        'raceState.score': (me.raceState?.score || 0) + 1000
+                    }).catch(e=>{});
+                    setTimeout(async () => {
+                        setMemoryMsg(null);
+                        await proceedToNextCheckpoint();
+                    }, 1500);
                 }
             };
 
@@ -698,9 +1011,9 @@
             };
 
             const me = players[user?.uid] || null;
-            const myVehicleDef = me ? (VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius']) : null;
-            const activeRoute = (raceData?.active && raceData?.routeId) ? ROUTES[raceData.routeId] : null;
-            const raceLeaderboard = Object.values(players).filter(p => p.raceState?.finishTime).sort((a, b) => (a.raceState.finishTime - a.raceState.startTime) - (b.raceState.finishTime - b.raceState.startTime));
+            const myVehicleDef = me ? (VEHICLES[me.vehicleId || localVehicle] || VEHICLES['prius']) : null;
+            const activeRoute = me?.raceState?.startTime ? ROUTES[me.raceState.routeId] : ROUTES[localRoute];
+            
             const odometerValue = me ? String((me.raceState?.checkpoint || 0) * 142 + driveProgress * 12).padStart(6, '0') : '000000';
             
             const totalPlatesFound = Object.keys(plates).length;
@@ -722,6 +1035,10 @@
                 });
             }, [players, plates]);
 
+            const runLeaderboard = useMemo(() => {
+                return runTimes.filter(r => r.routeId === leaderboardRouteFilter).sort((a,b) => (b.score || 0) - (a.score || 0) || a.timeMs - b.timeMs).slice(0, 10);
+            }, [runTimes, leaderboardRouteFilter]);
+
             if (isLoading) return <div className="h-full w-full flex items-center justify-center bg-gray-900 text-white"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
             return (
@@ -741,17 +1058,6 @@
                                             <label className="block text-sm text-gray-400 font-bold mb-2">Driver Name</label>
                                             <input type="text" value={joinName} onChange={(e) => setJoinName(e.target.value)} placeholder="e.g. Dad, Mom, Timmy" className="w-full bg-gray-900 border-2 border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-colors" maxLength={12} required />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm text-gray-400 font-bold mb-2">Select Vehicle</label>
-                                            <div className="grid grid-cols-1 gap-3 max-h-[40vh] overflow-y-auto pr-2">
-                                                {Object.values(VEHICLES).map(veh => (
-                                                    <button key={veh.id} type="button" onClick={() => setSelectedVehicle(veh.id)} className={`p-4 rounded-xl border-2 text-left flex flex-col gap-1 transition-all shadow-md ${selectedVehicle === veh.id ? 'bg-cyan-900/40 border-cyan-500 ring-2 ring-cyan-500/50 scale-[1.02]' : 'bg-gray-900 border-gray-700 hover:border-gray-500 opacity-70'}`}>
-                                                        <div className="flex items-center gap-3"><span className="text-3xl">{veh.icon}</span><span className={`font-black text-lg ${veh.color}`}>{veh.name}</span></div>
-                                                        <span className="text-xs text-gray-400 leading-tight">{veh.desc}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
                                         <button type="submit" disabled={isJoining} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-all active:scale-95 text-xl tracking-widest uppercase">Start Playing</button>
                                     </form>
                                 </div>
@@ -764,10 +1070,13 @@
                                 <header className="w-full bg-black border-b-4 border-gray-800 p-3 sm:p-4 pt-safe flex flex-col shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative z-20 shrink-0">
                                     <div className="flex justify-between items-start w-full mb-3">
                                         <div className="bg-gray-900/80 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-2 max-w-[50%]">
-                                            <div className={`w-5 h-5 rounded-full ${myVehicleDef.bg} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>{(me.name || 'P').charAt(0)}</div>
-                                            <span className="text-[10px] sm:text-xs font-bold text-gray-300 truncate">{activeRoute?.name || 'Lobby'}</span>
+                                            <div className={`w-5 h-5 rounded-full ${myVehicleDef?.bg} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>{(me.name || 'P').charAt(0)}</div>
+                                            <span className="text-[10px] sm:text-xs font-bold text-gray-300 truncate">{activeRoute?.name || 'Garage'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <div className="text-green-400 font-black text-xs sm:text-sm bg-gray-900/80 px-2 py-1 rounded-md border border-green-900 shadow-[0_0_10px_rgba(34,197,94,0.2)]">
+                                                ⭐ {me.raceState?.score || 0}
+                                            </div>
                                             {status !== 'lobby' && status !== 'finished' && me.raceState?.startTime ? (
                                                 <button onClick={() => setConfirmQuit(true)} className="bg-red-900/80 hover:bg-red-700 text-red-200 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-red-700 shadow-[0_0_10px_rgba(220,38,38,0.3)] active:scale-95">QUIT</button>
                                             ) : null}
@@ -781,9 +1090,9 @@
                                         <div className="flex flex-col items-center gap-1 w-1/4">
                                             <span className="text-[9px] text-gray-500 font-black tracking-widest uppercase">Fuel</span>
                                             <div className="h-12 sm:h-16 w-8 bg-gray-900 border-2 border-gray-700 rounded-t-xl rounded-b-sm relative overflow-hidden flex items-end shadow-inner">
-                                                <div className={`w-full transition-all duration-300 ease-out ${gasLevel > (myVehicleDef.gasTank * 0.4) ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : gasLevel > (myVehicleDef.gasTank * 0.2) ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef.gasTank || 100))*100}%`}}></div>
+                                                <div className={`w-full transition-all duration-300 ease-out ${(myVehicleDef && gasLevel > (myVehicleDef.gasTank * 0.4)) ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : (myVehicleDef && gasLevel > (myVehicleDef.gasTank * 0.2)) ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef?.gasTank || 100))*100}%`}}></div>
                                             </div>
-                                            <span className={`text-base sm:text-lg mt-1 ${gasLevel <= (myVehicleDef.gasTank * 0.2) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
+                                            <span className={`text-base sm:text-lg mt-1 ${(myVehicleDef && gasLevel <= (myVehicleDef.gasTank * 0.2)) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
                                         </div>
 
                                         <div className="flex flex-col items-center justify-center w-2/4">
@@ -801,64 +1110,177 @@
                                     </div>
                                 </header>
 
-                                <div className="flex-1 w-full bg-gray-900 relative overflow-y-auto flex flex-col items-center justify-center p-2 sm:p-4">
-                                    <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#374151 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                <div className={`flex-1 w-full bg-gray-900 relative overflow-y-auto flex flex-col p-2 sm:p-4 gap-4 ${simulatedSpeed > 75 && status === 'driving' ? 'speed-shake' : ''}`}>
+                                    
+                                    {/* Background Particles / Effects */}
+                                    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                                        {simulatedSpeed > 0 && status === 'driving' && !isOverheated && <div className="speed-lines"></div>}
+                                        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#374151 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                    </div>
 
-                                    {!activeRoute ? (
-                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10 my-auto">
-                                            <h3 className="text-xl font-bold text-white mb-4 text-center">Select a Route</h3>
-                                            <div className="space-y-3 h-[25vh] overflow-y-auto pr-2">
-                                                {Object.values(ROUTES).map(route => (
-                                                    <button key={route.id} onClick={() => createNewRace(route.id)} className="w-full bg-gray-900 border border-gray-600 hover:border-cyan-400 rounded-xl p-4 flex items-center justify-between transition-all">
-                                                        <div className="flex items-center gap-3"><span className="text-2xl">{route.icon}</span><span className="font-bold text-white">{route.name}</span></div>
-                                                        <div className="text-[10px] font-bold text-gray-500 bg-gray-800 px-2 py-1 rounded">10 STATES</div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ) : !me.raceState?.startTime ? (
-                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 text-center shadow-2xl relative z-10 my-auto">
-                                            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-widest">{activeRoute.name}</h3>
-                                            <p className="text-cyan-400 font-bold mb-6 text-xs leading-relaxed break-words px-2">{activeRoute.states.join(' ➡️ ')}</p>
+                                    {!me.raceState?.startTime ? (
+                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10 m-auto">
+                                            <h3 className="text-2xl font-black text-white mb-4 text-center uppercase tracking-widest">Pre-Race Setup</h3>
                                             
-                                            <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-700 text-left max-h-[150px] overflow-y-auto">
-                                                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Players in Lobby</h4>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {Object.values(players).map(p => (
-                                                        <div key={p.uid} className={`px-3 py-1 rounded-full text-xs font-bold text-white ${p.color} bg-opacity-80 border border-white/20`}>{p.name}</div>
+                                            <div className="mb-6">
+                                                <label className="block text-xs text-gray-400 font-bold mb-2 uppercase tracking-widest">1. Select Vehicle</label>
+                                                <div className="flex overflow-x-auto gap-3 pb-2 snap-x">
+                                                    {Object.values(VEHICLES).map(veh => (
+                                                        <button key={veh.id} type="button" onClick={() => setLocalVehicle(veh.id)} className={`snap-center shrink-0 w-[180px] p-3 rounded-xl border-2 text-left flex flex-col gap-1 transition-all shadow-md ${localVehicle === veh.id ? 'bg-cyan-900/40 border-cyan-500 ring-2 ring-cyan-500/50 scale-[1.02]' : 'bg-gray-900 border-gray-700 hover:border-gray-500 opacity-70'}`}>
+                                                            <div className="flex items-center gap-2"><span className="text-2xl">{veh.icon}</span><span className={`font-black text-sm ${veh.color}`}>{veh.name}</span></div>
+                                                            <span className="text-[10px] text-gray-400 leading-tight">{veh.desc}</span>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </div>
 
-                                            {!raceData.globalStartTime ? (
-                                                <>
-                                                    <button onClick={executeGlobalStart} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.6)] text-base sm:text-lg tracking-widest uppercase active:scale-95">Start For Everyone</button>
-                                                    <button onClick={handleChangeRoute} className="mt-4 text-gray-500 text-xs font-bold uppercase tracking-widest underline p-2">Cancel Race / Change Route</button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button onClick={() => setQuitRaceId(null)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.6)] text-base sm:text-lg tracking-widest uppercase active:scale-95">Rejoin Race</button>
-                                                    <button onClick={handleChangeRoute} className="mt-4 text-red-500/80 text-xs font-bold uppercase tracking-widest underline p-2">End Race For Everyone</button>
-                                                </>
-                                            )}
+                                            <div className="mb-6">
+                                                <label className="block text-xs text-gray-400 font-bold mb-2 uppercase tracking-widest">2. Choose Route</label>
+                                                <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-1">
+                                                    {Object.values(ROUTES).map(route => {
+                                                        const bestTimeForRoute = runTimes.filter(r => r.routeId === route.id && r.uid === user.uid).sort((a,b) => a.timeMs - b.timeMs)[0];
+                                                        return (
+                                                            <button key={route.id} onClick={() => setLocalRoute(route.id)} className={`w-full border-2 rounded-xl p-3 flex flex-col transition-all ${localRoute === route.id ? 'bg-blue-900/40 border-blue-500 ring-1 ring-blue-500' : 'bg-gray-900 border-gray-700'}`}>
+                                                                <div className="flex items-center justify-between w-full">
+                                                                    <div className="flex items-center gap-2"><span className="text-xl">{route.icon}</span><span className="font-bold text-white text-sm">{route.name}</span></div>
+                                                                    <div className="text-[9px] font-bold text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded">10 STATES</div>
+                                                                </div>
+                                                                {bestTimeForRoute && <div className="text-left text-[10px] text-cyan-400 mt-1 font-bold">Personal Best: {formatTime(bestTimeForRoute.timeMs)}</div>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <button onClick={startSoloRace} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.6)] text-base sm:text-lg tracking-widest uppercase active:scale-95">Start Solo Run</button>
                                         </div>
                                     ) : status === 'finished' ? (
-                                        <div className="w-full max-w-sm space-y-4 relative z-10 my-auto">
+                                        <div className="w-full max-w-sm space-y-4 relative z-10 m-auto">
                                             <div className="bg-gray-800 rounded-2xl p-6 border-2 border-cyan-700 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center">
                                                 <div className="text-5xl mb-2">🏁</div>
                                                 <h3 className="text-xl sm:text-2xl font-black text-white">ROUTE COMPLETE!</h3>
-                                                <div className="text-3xl sm:text-4xl font-mono font-black text-cyan-400 mt-2">{currentTime}</div>
+                                                <div className="text-2xl sm:text-3xl font-black text-green-400 mt-2">⭐ {me.raceState?.score || 0} PTS</div>
+                                                <div className="text-xl sm:text-2xl font-mono font-black text-cyan-400 mt-2">{currentTime}</div>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={executeDropOut} className="flex-1 bg-gray-800 text-gray-300 text-sm font-bold py-3 rounded-xl border border-gray-600 active:scale-95">Leave Race</button>
-                                                <button onClick={handleChangeRoute} className="flex-1 bg-red-900/50 text-red-300 text-sm font-bold py-3 rounded-xl border border-red-800 active:scale-95">End For Everyone</button>
-                                            </div>
+                                            <button onClick={executeDropOut} className="w-full bg-gray-800 text-gray-300 text-sm font-bold py-3 rounded-xl border border-gray-600 active:scale-95">Return to Garage</button>
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex flex-col justify-center relative z-10 p-1 sm:p-2">
+                                        <React.Fragment>
                                             
+                                            {/* Vehicle Info Bar */}
+                                            {status === 'driving' && myVehicleDef && (
+                                                <div className="bg-gray-900/80 rounded-xl p-2 sm:p-3 border border-gray-700 flex items-center gap-3 w-full max-w-sm mx-auto shadow-md z-10 shrink-0">
+                                                    <span className="text-2xl">{myVehicleDef.icon}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-xs sm:text-sm font-black uppercase tracking-wider ${myVehicleDef.color}`}>{myVehicleDef.name}</span>
+                                                        <span className="text-[9px] sm:text-[10px] text-gray-400 leading-tight">{myVehicleDef.desc}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Tachometer / Sweet Spot Console */}
+                                            <div className="w-full bg-black/60 rounded-3xl border-4 border-gray-800 p-4 flex flex-col items-center justify-center relative shadow-inner overflow-hidden shrink-0 z-10">
+                                                {/* Sweet Spot Light */}
+                                                <div className={`w-32 h-6 rounded-full border-2 mb-4 transition-colors duration-100 ${sweetSpot ? 'bg-blue-500 border-blue-200 shadow-[0_0_20px_rgba(59,130,246,1)]' : 'bg-gray-900 border-gray-700'}`}></div>
+                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest absolute top-2">SHIFT INDICATOR</div>
+                                                
+                                                {/* RPM / Overheat Gauge */}
+                                                <div className="w-full max-w-[250px] h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative">
+                                                    <div className={`h-full transition-all duration-75 ${isOverheated ? 'bg-red-600 animate-pulse' : overheat > 75 ? 'bg-orange-500' : 'bg-green-500'}`} style={{width: `${overheat}%`}}></div>
+                                                </div>
+                                                <div className="text-[10px] mt-2 font-black tracking-widest uppercase text-gray-400">{isOverheated ? <span className="text-red-500">ENGINE OVERHEATED</span> : 'ENGINE TEMP'}</div>
+
+                                                {showPerfectShift && (
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                        <span className="text-3xl font-black text-blue-400 italic animate-ping">PERFECT!</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* GPS Map Area - Larger and flex-growing */}
+                                            <div className="bg-black/50 rounded-2xl p-4 sm:p-6 border border-gray-800 relative shadow-inner flex-1 flex flex-col z-10 overflow-hidden">
+                                                
+                                                {/* State Flag Background */}
+                                                <div 
+                                                    className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity pointer-events-none transition-all duration-1000" 
+                                                    style={{ backgroundImage: `url(https://flagcdn.com/w640/us-${activeRoute.states[me.raceState?.checkpoint || 0].toLowerCase()}.png)` }}
+                                                ></div>
+
+                                                <div className="text-xs text-gray-500 font-black uppercase tracking-widest mb-8 flex justify-between relative z-10">
+                                                    <span>GPS Route</span>
+                                                </div>
+                                                
+                                                <div className="relative h-2 bg-gray-800 rounded-full mb-10 mx-2 mt-auto z-10">
+                                                    <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
+                                                    
+                                                    {ghostPercent !== null && (
+                                                        <div className="absolute top-[-20px] text-xl z-20 transition-all duration-100 opacity-60" style={{left: `calc(${ghostPercent}% - 12px)`}}>👻</div>
+                                                    )}
+
+                                                    <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-1.5">
+                                                        {activeRoute.states.map((st, i) => {
+                                                            const isPast = i < (me.raceState?.checkpoint || 0);
+                                                            const isCurrent = i === (me.raceState?.checkpoint || 0);
+                                                            return (
+                                                                <div key={i} className="relative flex flex-col items-center">
+                                                                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-[3px] z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
+                                                                    <div className={`absolute top-7 sm:top-8 text-[10px] sm:text-xs font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                {status === 'driving' && (
+                                                    <div className="mt-auto pt-4 sm:pt-6 relative z-10">
+                                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-2">
+                                                            {(() => {
+                                                                const nextIdx = Math.min(activeRoute.states.length - 1, (me.raceState?.checkpoint || 0) + 1);
+                                                                const isFinish = (me.raceState?.checkpoint || 0) >= activeRoute.states.length - 1;
+                                                                return isFinish ? "Almost at the Finish Line!" : `Distance to ${STATE_DATA[activeRoute.states[nextIdx]]?.name} (${activeRoute.states[nextIdx]})`;
+                                                            })()}
+                                                        </div>
+                                                        <div className="h-3 sm:h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-3 sm:mb-4">
+                                                            <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-75" style={{ width: `${(driveProgress / (myVehicleDef?.driveTaps || 1)) * 100}%` }}></div>
+                                                        </div>
+                                                        <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 text-center shadow-inner backdrop-blur-sm">
+                                                            <div className="text-cyan-400 font-black text-[10px] sm:text-xs uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
+                                                                <span>💡</span> {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Fact
+                                                            </div>
+                                                            <div className="text-gray-300 text-xs sm:text-sm font-bold leading-tight px-1 sm:px-2">
+                                                                {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.fact}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* ALERTS / OVERLAYS */}
+                                            {status === 'poi' && activePoi && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl sm:text-5xl mb-2 shrink-0">🏪</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Rest Stop Ahead!</h3>
+                                                    <p className="text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Where do you want to stop?</p>
+                                                    <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
+                                                        <button onClick={() => handlePoiDecision('local')} className="w-full bg-green-600 border-b-4 border-green-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">{activePoi.localName}</span>
+                                                            <span className="text-xs text-green-200 mt-1">{activePoi.localDesc}</span>
+                                                            <span className="text-[10px] font-bold text-green-100 mt-1 bg-green-800/50 px-2 py-0.5 rounded-full">+{activePoi.localPts} PTS | -{activePoi.localGasCost} GAS</span>
+                                                        </button>
+                                                        <button onClick={() => handlePoiDecision('corp')} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                            <span className="font-black text-white text-sm sm:text-base">{activePoi.corpName}</span>
+                                                            <span className="text-xs text-gray-300 mt-1">{activePoi.corpDesc}</span>
+                                                            <span className="text-[10px] font-bold text-gray-200 mt-1 bg-gray-800/50 px-2 py-0.5 rounded-full">+{activePoi.corpPts} PTS | -{activePoi.corpGasCost} GAS</span>
+                                                        </button>
+                                                        <button onClick={() => handlePoiDecision('skip')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg flex flex-col items-center mt-2">
+                                                            <span className="font-black text-white text-xs">Keep Driving (Skip)</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {status === 'decision' && activeDecision && (
-                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-4 flex flex-col items-center justify-start overflow-y-auto text-center z-30">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">{activeDecision.icon}</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activeDecision.text}</h3>
                                                     <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Silly Situation!</p>
@@ -874,14 +1296,15 @@
                                             )}
                                             
                                             {status === 'decisionResult' && decisionResultData && (
-                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-gray-600 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-gray-600 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50">
                                                     <div className={`text-xl sm:text-2xl font-black uppercase tracking-wide mb-2 ${decisionResultData.color}`}>{decisionResultData.msg}</div>
+                                                    {decisionResultData.subMsg && <div className="text-white text-sm sm:text-base font-bold mb-4">{decisionResultData.subMsg}</div>}
                                                     <p className="text-gray-400 font-bold text-sm">Resuming race...</p>
                                                 </div>
                                             )}
 
                                             {status === 'random_event' && activeRandomEvent && (
-                                                <div className="absolute inset-2 bg-yellow-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-500 shadow-2xl p-4 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-yellow-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-500 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50">
                                                     <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">{activeRandomEvent.icon}</div>
                                                     <h3 className="text-lg sm:text-xl font-black text-white mb-2">{activeRandomEvent.title}</h3>
                                                     <p className="text-yellow-300 text-sm sm:text-base font-bold mb-4">{activeRandomEvent.text}</p>
@@ -892,7 +1315,7 @@
                                             )}
 
                                             {(status === 'out_of_gas' || status === 'refueling') && (
-                                                <div className="absolute inset-2 bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-red-900 shadow-2xl p-4 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[70vh] bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-red-900 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-50">
                                                     <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">⛽</div>
                                                     <div className={`text-lg sm:text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : 'text-yellow-400'}`}>
                                                         {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : 'PUMPING GAS...'}
@@ -904,108 +1327,124 @@
                                             )}
 
                                             {status === 'trivia' && activeTrivia && (
-                                                <div className="absolute inset-2 bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-500 shadow-2xl p-3 flex flex-col overflow-y-auto z-30">
-                                                    <div className="flex justify-between items-center text-blue-300 font-black uppercase tracking-widest text-[10px] mb-2 shrink-0">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md max-h-[80vh] bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-500 shadow-2xl p-4 flex flex-col overflow-y-auto z-50">
+                                                    <div className="flex justify-between items-center text-blue-300 font-black uppercase tracking-widest text-[10px] mb-4 shrink-0">
                                                         <span>{STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Border</span>
                                                         <span>Q {triviaStep + 1} of 2</span>
                                                     </div>
-                                                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-xl border border-blue-800 p-3 sm:p-4 relative overflow-hidden">
-                                                        <h3 className="text-base sm:text-lg font-bold text-white text-center leading-snug mb-2">
+                                                    <div className="flex-1 min-h-[150px] flex flex-col items-center justify-center bg-gray-900/50 rounded-xl border border-blue-800 p-4 sm:p-6 relative overflow-hidden mb-4">
+                                                        <h3 className="text-base sm:text-lg font-bold text-white text-center leading-snug">
                                                             {activeTrivia.q}
                                                         </h3>
                                                         {triviaMsg && (
-                                                            <div className={`absolute inset-0 flex items-center justify-center font-black text-xl sm:text-2xl z-30 ${triviaMsg.includes('WRONG') ? 'bg-red-600 text-white' : 'bg-green-500 text-white'}`}>
+                                                            <div className={`absolute inset-0 flex items-center justify-center font-black text-xl sm:text-2xl z-30 ${triviaMsg.includes('Penalty') ? 'bg-red-600 text-white' : 'bg-green-500 text-white'}`}>
                                                                 {triviaMsg}
                                                             </div>
                                                         )}
                                                     </div>
+                                                    <div className="w-full grid grid-cols-2 gap-3 shrink-0">
+                                                        {activeTrivia.opts.map((opt, idx) => (
+                                                            <button key={idx} disabled={!!triviaMsg} onClick={() => handleTriviaAnswer(opt.isCorrect)} className={`rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center p-3 leading-tight ${triviaMsg ? 'opacity-50' : 'bg-blue-700 border-b-8 border-blue-950 hover:bg-blue-600 active:border-b-0 active:translate-y-2 text-white cursor-pointer'}`}>
+                                                                {opt.text}
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
 
-                                            <div className="bg-black/50 rounded-2xl p-3 sm:p-4 border border-gray-800 relative shadow-inner mt-auto mb-auto">
-                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-4 flex justify-between">
-                                                    <span>GPS Route</span>
+                                            {status === 'reaction' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-500 shadow-2xl p-6 flex flex-col items-center z-50">
+                                                    <div className="text-yellow-400 font-black uppercase tracking-widest text-sm mb-4">Red Light, Green Light</div>
+                                                    <div className="text-gray-300 text-xs text-center mb-6">Tap the light exactly when it turns GREEN!</div>
+                                                    
+                                                    <button 
+                                                        onClick={() => handleReactionClick(reactionState === 'red')} 
+                                                        disabled={reactionState === 'result' || reactionState === 'wait'}
+                                                        className={`w-32 h-32 rounded-full border-4 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-colors duration-75 flex items-center justify-center
+                                                            ${reactionState === 'wait' ? 'bg-gray-800 border-gray-600' :
+                                                              reactionState === 'red' ? 'bg-red-600 border-red-400 shadow-[0_0_50px_rgba(220,38,38,0.8)] cursor-pointer' : 
+                                                              reactionState === 'green' ? 'bg-green-500 border-green-300 shadow-[0_0_50px_rgba(34,197,94,0.8)] cursor-pointer' : 
+                                                              'bg-gray-800 border-gray-600'}
+                                                        `}
+                                                    >
+                                                        {reactionState === 'green' && <span className="text-2xl font-black text-white">GO!</span>}
+                                                    </button>
+                                                    
+                                                    {triviaMsg && (
+                                                        <div className={`mt-6 font-black text-lg ${triviaMsg.includes('Penalty') ? 'text-red-500' : 'text-green-500'}`}>
+                                                            {triviaMsg}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                
-                                                <div className="relative h-1 bg-gray-800 rounded-full mb-8 mx-2">
-                                                    <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
-                                                    <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-2">
-                                                        {activeRoute.states.map((st, i) => {
-                                                            const isPast = i < (me.raceState?.checkpoint || 0);
-                                                            const isCurrent = i === (me.raceState?.checkpoint || 0);
-                                                            return (
-                                                                <div key={i} className="relative flex flex-col items-center">
-                                                                    <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
-                                                                    <div className={`absolute top-5 sm:top-6 text-[8px] sm:text-[9px] font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                            )}
+
+                                            {status === 'memory' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-md bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-6 flex flex-col items-center z-50">
+                                                    <div className="text-purple-400 font-black uppercase tracking-widest text-sm mb-2">Hot-Wire the Car</div>
+                                                    <div className="text-gray-300 text-xs text-center mb-6">Memorize and repeat the sequence to restart the engine!</div>
+                                                    
+                                                    <div className="text-xl font-black text-white mb-6 bg-gray-800 px-4 py-2 rounded-lg border border-gray-700 min-h-[44px]">
+                                                        {memoryMsg}
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-4 w-full max-w-[250px]">
+                                                        {[0,1,2,3].map((val) => (
+                                                            <button 
+                                                                key={val}
+                                                                disabled={memoryMsg !== "YOUR TURN!"}
+                                                                onClick={() => handleMemoryClick(val)}
+                                                                className={`aspect-square rounded-xl font-black text-2xl text-white shadow-lg transition-all active:scale-95 active:brightness-75
+                                                                    ${val === 0 ? 'bg-red-500' : val === 1 ? 'bg-blue-500' : val === 2 ? 'bg-green-500' : 'bg-yellow-500'}
+                                                                    ${memoryMsg !== "YOUR TURN!" ? 'opacity-50 cursor-not-allowed' : 'hover:ring-4 ring-white/30 cursor-pointer'}
+                                                                `}
+                                                            >
+                                                                {val + 1}
+                                                            </button>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                                
-                                                {status === 'driving' && (
-                                                    <div className="mt-4 sm:mt-6">
-                                                        <div className="text-[9px] text-gray-500 font-bold uppercase tracking-widest text-center mb-1">
-                                                            Distance to {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} ({activeRoute.states[me.raceState?.checkpoint || 0]})
-                                                        </div>
-                                                        <div className="h-2 sm:h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-2 sm:mb-3">
-                                                            <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-75" style={{ width: `${(driveProgress / myVehicleDef.driveTaps) * 100}%` }}></div>
-                                                        </div>
-                                                        <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-2 text-center shadow-inner">
-                                                            <div className="text-cyan-400 font-black text-[9px] uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
-                                                                <span>💡</span> {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Fact
-                                                            </div>
-                                                            <div className="text-gray-300 text-[10px] sm:text-xs font-bold leading-tight px-1 sm:px-2">
-                                                                {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.fact}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                            )}
+                                        </React.Fragment>
                                     )}
                                 </div>
 
-                                <footer className="h-[25dvh] min-h-[160px] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 shrink-0">
+                                <footer className="h-[15dvh] min-h-[100px] max-h-[140px] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 shrink-0">
                                     {status === 'finished' || !me.raceState?.startTime ? (
                                         <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-xl sm:text-2xl uppercase tracking-widest">
                                             ENGINE OFF
                                         </div>
                                     ) : status === 'driving' ? (
-                                        <div className="w-full h-full flex gap-3 p-3 sm:p-4">
+                                        <div className="w-full h-full flex gap-3 p-3">
                                             <div className="w-1/3 flex flex-col gap-3 h-full">
-                                                <button onClick={() => { setReturnStatus('driving'); setStatus('refueling'); setRefuelTimer(10); }} className="h-full pedal-brake bg-gradient-to-b from-red-700 to-red-900 rounded-xl border-x-4 border-b-8 border-red-950 flex flex-col items-center justify-center transition-transform cursor-pointer">
+                                                <button onClick={() => { setReturnStatus('driving'); setStatus('refueling'); setRefuelTimer(10); }} disabled={isOverheated} className={`h-full pedal-brake rounded-xl border-x-4 border-b-8 border-red-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-red-900 opacity-50' : 'bg-gradient-to-b from-red-700 to-red-900'}`}>
                                                     <span className="text-[9px] sm:text-[10px] font-black text-red-200 uppercase tracking-widest opacity-70 mb-1">PIT STOP</span>
-                                                    <span className="font-black text-lg sm:text-xl text-white">10 SEC</span>
+                                                    <span className="font-black text-base sm:text-lg text-white">10 SEC</span>
                                                 </button>
                                             </div>
                                             <div className="w-2/3 h-full">
-                                                <button onClick={handleDrive} className="w-full h-full pedal-gas bg-gradient-to-b from-gray-600 to-gray-800 rounded-2xl border-x-8 border-b-[16px] border-gray-950 flex flex-col items-center justify-center transition-transform overflow-hidden relative cursor-pointer">
+                                                <button onClick={handleDrive} disabled={isOverheated} className={`w-full h-full pedal-gas rounded-2xl border-x-8 border-b-[12px] border-gray-950 flex flex-col items-center justify-center transition-transform overflow-hidden relative cursor-pointer ${isOverheated ? 'bg-red-900 opacity-50' : 'bg-gradient-to-b from-gray-600 to-gray-800'}`}>
                                                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, #000 10px, #000 20px)' }}></div>
-                                                    <span className="relative z-10 text-xs sm:text-sm font-black text-gray-400 uppercase tracking-widest mb-1 sm:mb-2">ACCELERATE</span>
-                                                    <span className="relative z-10 font-black text-4xl sm:text-5xl text-gray-200 tracking-wider">GAS</span>
+                                                    <span className="relative z-10 text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{isOverheated ? 'TOO HOT!' : 'ACCELERATE'}</span>
+                                                    <span className={`relative z-10 font-black text-3xl sm:text-4xl tracking-wider ${isOverheated ? 'text-red-400' : 'text-gray-200'}`}>GAS</span>
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : (status === 'decision' || status === 'random_event') ? (
+                                    ) : (status === 'decision' || status === 'random_event' || status === 'poi') ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-2">
-                                            <div className="text-purple-400 font-black text-lg sm:text-xl uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
+                                            <div className="text-purple-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
                                             <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Pedals Locked. Check Screen!</div>
                                         </div>
                                     ) : status === 'decisionResult' ? (
-                                        <div className="w-full h-full flex items-center justify-center text-blue-400 font-black text-lg sm:text-xl uppercase tracking-widest animate-pulse">
+                                        <div className="w-full h-full flex items-center justify-center text-blue-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse">
                                             RESOLVING...
                                         </div>
-                                    ) : status === 'trivia' && activeTrivia ? (
-                                        <div className="w-full h-full p-2 grid grid-cols-2 gap-2">
-                                            {activeTrivia.opts.map((opt, idx) => (
-                                                <button key={idx} disabled={!!triviaMsg} onClick={() => handleTriviaAnswer(opt.isCorrect)} className={`rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center p-2 leading-tight ${triviaMsg ? 'opacity-50' : 'bg-blue-700 border-b-8 border-blue-950 hover:bg-blue-600 active:border-b-0 active:translate-y-2 text-white cursor-pointer'}`}>
-                                                    {opt.text}
-                                                </button>
-                                            ))}
+                                    ) : (status === 'trivia' || status === 'reaction' || status === 'memory') ? (
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                                            <div className="text-blue-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse text-center">STATE BORDER AHEAD</div>
+                                            <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Complete challenge on screen</div>
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-xl sm:text-2xl uppercase tracking-widest">
+                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-base sm:text-lg uppercase tracking-widest">
                                             PEDALS LOCKED
                                         </div>
                                     )}
@@ -1023,7 +1462,7 @@
                                         <span className="text-4xl block mb-2">🏆</span>
                                         <h2 className="text-2xl font-black uppercase tracking-widest mb-1">HUNT COMPLETE!</h2>
                                         <p className="font-bold mb-4">{getPlateWinnerNames()} won this round!</p>
-                                        <button onClick={handleResetPlates} disabled={isResettingPlates} className="bg-white text-yellow-600 px-6 py-3 rounded-xl font-black uppercase tracking-widest shadow-md active:scale-95 transition-all">
+                                        <button onClick={() => setConfirmResetPlates(true)} disabled={isResettingPlates} className="bg-white text-yellow-600 px-6 py-3 rounded-xl font-black uppercase tracking-widest shadow-md active:scale-95 transition-all">
                                             Start New Game
                                         </button>
                                     </div>
@@ -1084,22 +1523,60 @@
 
                         {/* LEADERBOARD TAB */}
                         {activeTab === 'leaderboard' && (
-                            <div className="p-4 overflow-y-auto h-full pb-20 space-y-3">
-                                <h2 className="text-xl font-bold text-white mb-4">Top Spotters</h2>
-                                {globalLeaderboard.map((player, index) => (
-                                    <div key={player.uid} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-700 relative overflow-hidden">
-                                        {player.plateWins > 0 && <div className="absolute top-0 right-0 bg-yellow-500/20 px-2 py-1 rounded-bl-lg text-[10px] font-black text-yellow-500">{(player.plateWins || 0)}x CHAMP</div>}
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-2xl w-8 text-center font-bold text-gray-500">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</div>
-                                            <div className={`w-12 h-12 rounded-full ${player.color} flex items-center justify-center text-xl font-bold text-white shadow-inner`}>{player.name.charAt(0)}</div>
-                                            <h3 className="font-bold text-lg text-white">{player.name}</h3>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-2xl font-black text-white">{player.score} <span className="text-[10px] font-normal text-gray-400">pts</span></div>
-                                            <div className="text-sm font-bold text-yellow-500">{player.plateWins || 0} <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Wins</span></div>
-                                        </div>
+                            <div className="p-4 overflow-y-auto h-full pb-20 space-y-4">
+                                <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700">
+                                    <button onClick={() => setLeaderboardView('plates')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${leaderboardView === 'plates' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Plate Hunters</button>
+                                    <button onClick={() => setLeaderboardView('rally')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${leaderboardView === 'rally' ? 'bg-cyan-900/50 text-cyan-400' : 'text-gray-400 hover:text-gray-200'}`}>Rally Times</button>
+                                </div>
+
+                                {leaderboardView === 'plates' && (
+                                    <div className="space-y-3">
+                                        {globalLeaderboard.map((player, index) => (
+                                            <div key={player.uid} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-700 relative overflow-hidden">
+                                                {player.plateWins > 0 && <div className="absolute top-0 right-0 bg-yellow-500/20 px-2 py-1 rounded-bl-lg text-[10px] font-black text-yellow-500">{(player.plateWins || 0)}x CHAMP</div>}
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-2xl w-8 text-center font-bold text-gray-500">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</div>
+                                                    <div className={`w-12 h-12 rounded-full ${player.color} flex items-center justify-center text-xl font-bold text-white shadow-inner`}>{player.name.charAt(0)}</div>
+                                                    <h3 className="font-bold text-lg text-white">{player.name}</h3>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-2xl font-black text-white">{player.score} <span className="text-[10px] font-normal text-gray-400">pts</span></div>
+                                                    <div className="text-sm font-bold text-yellow-500">{player.plateWins || 0} <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Wins</span></div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                )}
+
+                                {leaderboardView === 'rally' && (
+                                    <div className="space-y-3">
+                                        <select value={leaderboardRouteFilter} onChange={(e) => setLeaderboardRouteFilter(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500">
+                                            {Object.values(ROUTES).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                        </select>
+                                        
+                                        {runLeaderboard.length === 0 ? (
+                                            <div className="text-center text-gray-500 py-6">No runs recorded for this route yet. Be the first!</div>
+                                        ) : (
+                                            runLeaderboard.map((run, index) => (
+                                                <div key={run.id} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-700">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-xl w-6 text-center font-bold text-gray-500">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</div>
+                                                        <div>
+                                                            <h3 className="font-bold text-white">{run.name}</h3>
+                                                            <div className="text-xs text-gray-400">{VEHICLES[run.vehicleId]?.name || 'Unknown'}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-lg font-black text-green-400">⭐ {run.score || 0}</div>
+                                                        <div className="text-[10px] font-mono font-bold text-cyan-400">
+                                                            {formatTime(run.timeMs)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -1161,10 +1638,24 @@
                             <div className="bg-gray-800 rounded-2xl p-6 border-2 border-red-900 shadow-2xl text-center max-w-xs w-full">
                                 <div className="text-4xl mb-4">⚠️</div>
                                 <h3 className="text-xl font-black text-white mb-2">Drop Out?</h3>
-                                <p className="text-gray-400 text-sm font-bold mb-6">Are you sure you want to leave this race? Your progress will be lost.</p>
+                                <p className="text-gray-400 text-sm font-bold mb-6">Are you sure you want to return to the garage? Your progress will be lost.</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => setConfirmQuit(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
-                                    <button onClick={executeDropOut} className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.5)]">Quit Race</button>
+                                    <button onClick={executeDropOut} className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.5)]">Quit Run</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {confirmResetPlates && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-gray-800 rounded-2xl p-6 border-2 border-yellow-600 shadow-2xl text-center max-w-xs w-full">
+                                <div className="text-4xl mb-4">⚠️</div>
+                                <h3 className="text-xl font-black text-white mb-2">Reset Plates?</h3>
+                                <p className="text-gray-400 text-sm font-bold mb-6">Are you sure you want to clear all found plates and start a new hunt? This cannot be undone.</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setConfirmResetPlates(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
+                                    <button onClick={() => { setConfirmResetPlates(false); handleResetPlates(); }} className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(202,138,4,0.5)]">Yes, Reset</button>
                                 </div>
                             </div>
                         </div>
