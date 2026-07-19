@@ -22,6 +22,7 @@
         
         .dash-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.6); }
         .alert-text { text-shadow: 0 0 10px rgba(248, 113, 113, 0.8); }
+        .scramble-text { filter: blur(3px); pointer-events: none; opacity: 0.7; }
         
         .pedal-gas { box-shadow: inset 0px -15px 0px 0px rgba(0,0,0,0.5), 0px 10px 15px rgba(0,0,0,0.8); }
         .pedal-gas:active { box-shadow: inset 0px -5px 0px 0px rgba(0,0,0,0.5), 0px 5px 5px rgba(0,0,0,0.8); transform: translateY(10px); }
@@ -77,8 +78,8 @@
         };
 
         const VEHICLES = {
-            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 120, driveTaps: 65, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank.' },
-            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 200, driveTaps: 85, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
+            sport: { id: 'sport', name: 'Sports Car', icon: '🏎️', color: 'text-red-400', bg: 'bg-red-500', gasTank: 100, driveTaps: 65, desc: 'Fastest car. Requires the fewest taps, but has a tiny gas tank.' },
+            prius: { id: 'prius', name: 'Prius', icon: '🚙', color: 'text-blue-400', bg: 'bg-blue-500', gasTank: 150, driveTaps: 85, desc: 'The balanced choice. Excellent gas mileage and moderate speed.' },
             rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, driveTaps: 110, desc: 'Slow & Steady. Massive gas tank means very few pit stops!' }
         };
 
@@ -171,8 +172,8 @@
             'WY': { name: "Wyoming", cap: "Cheyenne", order: 44, fact: "Home to Yellowstone, the first National Park in the world." }
         };
 
-        const getTriviaForState = (state, questionNum) => {
-            const data = STATE_DATA[state];
+        const getTriviaForState = (stateAbbr, questionNum) => {
+            const data = STATE_DATA[stateAbbr];
             if (!data) return { q: "Missing data", a: 0, opts: ["A","B"] };
             
             if (questionNum === 0) {
@@ -195,7 +196,7 @@
         };
 
         function App({ firebaseModules }) {
-            const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, deleteDoc } = firebaseModules;
+            const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, updateDoc, getDoc, onSnapshot, collection, deleteDoc } = firebaseModules;
 
             const [appDb, setAppDb] = useState(null);
             const [user, setUser] = useState(null);
@@ -215,6 +216,7 @@
             // Plates State
             const [claimingState, setClaimingState] = useState(null);
             const [unclaimingState, setUnclaimingState] = useState(null);
+            const [isResettingPlates, setIsResettingPlates] = useState(false);
 
             // Rally Core State
             const [status, setStatus] = useState('lobby'); 
@@ -225,6 +227,7 @@
             const [simulatedSpeed, setSimulatedSpeed] = useState(0);
             const [currentTime, setCurrentTime] = useState('00:00.0');
             const [confirmQuit, setConfirmQuit] = useState(false);
+            const [quitRaceId, setQuitRaceId] = useState(null);
             
             // Rally Encounter State
             const [usedDecisions, setUsedDecisions] = useState([]);
@@ -242,34 +245,41 @@
             const [triviaMsg, setTriviaMsg] = useState(null);
             
             useEffect(() => {
-                const fbApp = window.FirebaseModules.initializeApp(firebaseConfig);
-                const auth = getAuth(fbApp);
-                const db = getFirestore(fbApp);
-                setAppDb(db);
+                try {
+                    const fbApp = firebaseModules.initializeApp(firebaseConfig);
+                    const auth = getAuth(fbApp);
+                    const db = getFirestore(fbApp);
+                    setAppDb(db);
 
-                const authenticate = async () => {
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken).catch(async (e) => {
+                    const authenticate = async () => {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
                                 await signInAnonymously(auth);
-                            });
-                        } else {
+                            }
+                        } catch (err) {
+                            console.error("Auth error, falling back to anonymous:", err);
                             await signInAnonymously(auth);
                         }
-                    } catch (err) {
-                        console.error("Auth Error", err);
-                    }
-                };
-                authenticate();
-                
-                onAuthStateChanged(auth, (u) => { 
-                    setUser(u); 
-                    if (u) setIsLoading(false);
-                });
+                    };
+                    
+                    authenticate();
+
+                    onAuthStateChanged(auth, (u) => { 
+                        if (u) {
+                            setUser(u);
+                            setIsLoading(false);
+                        }
+                    });
+                } catch (e) {
+                    console.error("Firebase init error:", e);
+                    setError("Failed to initialize game database.");
+                }
             }, []);
 
             useEffect(() => {
-                if (!user || !appDb) return;
+                if (!appDb) return;
                 
                 const unsubPlayers = onSnapshot(collection(appDb, 'artifacts', APP_ID, 'public', 'data', 'players'), (snap) => {
                     const p = {}; snap.forEach(d => p[d.id] = d.data()); setPlayers(p);
@@ -287,21 +297,47 @@
             useEffect(() => {
                 const globalStart = raceData?.globalStartTime;
                 const me = players[user?.uid] || {};
-                
-                if (status === 'lobby' && globalStart && me.raceState && !me.raceState.startTime) {
-                    const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
-                    updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 
-                        'raceState.startTime': globalStart, 'raceState.finishTime': null, 'raceState.checkpoint': 0 
-                    });
-                    setStatus('driving');
-                    setDriveProgress(0);
-                    setHasFacedDecision(false);
-                    setHasFacedRandomEvent(false);
-                    setUsedDecisions([]);
-                    setUsedEvents([]);
-                    setGasLevel(v.gasTank);
+
+                // 1. Join race if global start is triggered and we haven't joined yet
+                if (globalStart && me.raceState && !me.raceState.startTime && quitRaceId !== globalStart) {
+                    if (user?.uid && appDb) {
+                        updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                            'raceState.startTime': globalStart, 'raceState.finishTime': null, 'raceState.checkpoint': 0
+                        }).catch(e => console.error("Error auto-joining race:", e));
+                    }
                 }
-            }, [raceData?.globalStartTime, status, players, user?.uid, appDb]);
+
+                // 2. State Sync: Ensure local status matches Database Reality (Fixes Zombie Lobby)
+                if (me.raceState?.startTime) {
+                    if (me.raceState.finishTime && status !== 'finished') {
+                        setStatus('finished');
+                    } else if (!me.raceState.finishTime && status === 'lobby') {
+                        const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
+                        setStatus('driving');
+                        setDriveProgress(0);
+                        setHasFacedDecision(false);
+                        setHasFacedRandomEvent(false);
+                        setUsedDecisions([]);
+                        setUsedEvents([]);
+                        setGasLevel(v.gasTank);
+                    }
+                } else if (status !== 'lobby') {
+                    setStatus('lobby');
+                }
+            }, [raceData?.globalStartTime, status, players, user?.uid, appDb, quitRaceId]);
+            
+            // Safety Net: Kick ghost drivers if the global race gets cancelled
+            useEffect(() => {
+                const me = players[user?.uid] || {};
+                if (raceData && !raceData.active && me.raceState?.startTime) {
+                    if (appDb && user?.uid) {
+                        updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                            'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0
+                        }).catch(e => console.error(e));
+                    }
+                    setStatus('lobby');
+                }
+            }, [raceData?.active, players, user?.uid, appDb]);
 
             useEffect(() => {
                 const me = players[user?.uid] || {};
@@ -364,7 +400,7 @@
                     await setDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
                         uid: user.uid, name: joinName.trim(), vehicleId: selectedVehicle,
                         color: PLAYER_COLORS[colorIndex], joinedAt: Date.now(),
-                        bingoBoard: generateBingoBoard(), bingoMarks: [12],
+                        bingoBoard: generateBingoBoard(), bingoMarks: [12], plateWins: 0,
                         raceState: { startTime: null, finishTime: null, checkpoint: 0 }
                     });
                 } catch (err) { console.error(err); }
@@ -389,17 +425,37 @@
                 await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { globalStartTime: Date.now() });
             };
 
+            const handleChangeRoute = async () => {
+                if (!appDb) return;
+                try {
+                    // Global shutdown ends it safely for everyone
+                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { active: false, globalStartTime: null });
+                } catch(e) {}
+            };
+
             const executeDropOut = async () => {
                 if (!user || !appDb) return;
                 try {
+                    const me = players[user.uid];
+                    if (!me?.raceState?.startTime) {
+                        setConfirmQuit(false);
+                        return;
+                    }
+                    
+                    const otherActiveRacers = Object.values(players).filter(p => p.uid !== user.uid && p.raceState?.startTime);
+                    
+                    if (otherActiveRacers.length === 0) {
+                        await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { active: false, globalStartTime: null });
+                    }
+                    
                     await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), { 
                         'raceState.startTime': null, 'raceState.finishTime': null, 'raceState.checkpoint': 0 
                     });
+                    
+                    setQuitRaceId(raceData?.globalStartTime);
                     setConfirmQuit(false);
                     setStatus('lobby');
-                } catch (e) {
-                    console.error(e);
-                }
+                } catch (e) { console.error(e); }
             };
 
             const handleDrive = () => {
@@ -410,7 +466,6 @@
                 if (!route) return;
                 
                 setSimulatedSpeed(prev => Math.min(prev + 18, 85) + Math.floor(Math.random() * 4));
-                
                 const newGas = Math.max(0, gasLevel - 2);
                 setGasLevel(newGas);
                 
@@ -456,22 +511,24 @@
             };
 
             const handleDecision = (isRisk) => {
+                if (status !== 'decision') return;
                 const me = players[user?.uid] || {};
                 const v = VEHICLES[me.vehicleId || 'prius'] || VEHICLES['prius'];
                 
+                let newGas = gasLevel;
                 if (!isRisk) {
-                    setDecisionResultData({ msg: "Played it safe. Boring but safe.", color: "text-gray-400" });
+                    setDecisionResultData({ msg: "PLAYED IT SAFE!", color: "text-gray-400" });
                 } else {
                     const result = activeDecision.resolve();
-                    setDecisionResultData({ msg: result.msg, color: result.success ? "text-green-400" : "text-red-400" });
-                    
+                    setDecisionResultData({ msg: result.success ? "SUCCESS!" : "FAILED!", color: result.success ? "text-green-400" : "text-red-500" });
                     if (result.success) {
                         const progressBoost = Math.floor(v.driveTaps * 0.40);
                         setDriveProgress(prev => Math.min(v.driveTaps - 1, prev + progressBoost));
                     } else {
                         if (result.effect === 'lose_gas') {
                             const penalty = Math.floor(v.gasTank * 0.30);
-                            setGasLevel(Math.max(0, gasLevel - penalty));
+                            newGas = Math.max(0, gasLevel - penalty);
+                            setGasLevel(newGas);
                         }
                     }
                 }
@@ -480,7 +537,7 @@
                 
                 setTimeout(() => {
                     setDecisionResultData(null);
-                    if (gasLevel <= 0) {
+                    if (newGas <= 0) {
                         setReturnStatus('driving');
                         setRefuelTimer(15);
                         setStatus('out_of_gas');
@@ -505,6 +562,7 @@
                 const route = raceData?.routeId ? ROUTES[raceData.routeId] : null;
                 if (!route) return;
                 
+                let newGas = gasLevel;
                 if (isCorrect) {
                     setTriviaMsg("CORRECT! 🎉");
                     setTimeout(async () => {
@@ -530,7 +588,7 @@
                     }, 1000);
                 } else {
                     const penalty = Math.floor(v.gasTank * 0.25); 
-                    const newGas = Math.max(0, gasLevel - penalty);
+                    newGas = Math.max(0, gasLevel - penalty);
                     setGasLevel(newGas);
                     setTriviaMsg(`WRONG! -25% GAS ⛽`);
                     setTimeout(() => {
@@ -560,21 +618,83 @@
                 } catch (err) {}
             };
 
+            const getPlateWinnerNames = () => {
+                const scores = {};
+                Object.values(plates).forEach(plate => {
+                    scores[plate.foundBy] = (scores[plate.foundBy] || 0) + 1;
+                });
+                let maxScore = 0;
+                let winners = [];
+                Object.entries(scores).forEach(([uid, score]) => {
+                    if (score > maxScore) { maxScore = score; winners = [uid]; }
+                    else if (score === maxScore) { winners.push(uid); }
+                });
+                if (winners.length === 0) return "Nobody";
+                return winners.map(uid => players[uid]?.name || "Unknown").join(" & ");
+            };
+
+            const handleResetPlates = async () => {
+                if (!user || !appDb) return;
+                setIsResettingPlates(true);
+                try {
+                    const scores = {};
+                    Object.values(plates).forEach(plate => {
+                        scores[plate.foundBy] = (scores[plate.foundBy] || 0) + 1;
+                    });
+                    let maxScore = 0;
+                    let winners = [];
+                    Object.entries(scores).forEach(([uid, score]) => {
+                        if (score > maxScore) { maxScore = score; winners = [uid]; }
+                        else if (score === maxScore) { winners.push(uid); }
+                    });
+
+                    for (const winnerUid of winners) {
+                        if (players[winnerUid]) {
+                            const currentWins = players[winnerUid].plateWins || 0;
+                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', winnerUid), {
+                                plateWins: currentWins + 1
+                            });
+                        }
+                    }
+
+                    const platePromises = Object.keys(plates).map(state =>
+                        deleteDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'plates', state))
+                    );
+                    await Promise.all(platePromises);
+
+                } catch (err) {
+                    console.error("Failed to reset plates", err);
+                }
+                setIsResettingPlates(false);
+            };
+
+            const checkBingo = (marks) => {
+                if (!marks) return false;
+                const lines = [ [0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24], [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24], [0,6,12,18,24], [4,8,12,16,20] ];
+                return lines.some(line => line.every(idx => marks.includes(idx)));
+            };
+
             const handleToggleBingo = async (index) => {
                 const myPlayer = players[user.uid];
                 if (!myPlayer || !myPlayer.bingoBoard || index === 12) return;
                 const currentMarks = myPlayer.bingoMarks || [];
                 const newMarks = currentMarks.includes(index) ? currentMarks.filter(i => i !== index) : [...currentMarks, index];
                 
-                const checkBingo = (marks) => {
-                    const lines = [ [0,1,2,3,4], [5,6,7,8,9], [10,11,12,13,14], [15,16,17,18,19], [20,21,22,23,24], [0,5,10,15,20], [1,6,11,16,21], [2,7,12,17,22], [3,8,13,18,23], [4,9,14,19,24], [0,6,12,18,24], [4,8,12,16,20] ];
-                    return lines.some(line => line.every(idx => marks.includes(idx)));
-                };
-                
                 const updates = { bingoMarks: newMarks };
                 if (checkBingo(newMarks) && !checkBingo(currentMarks)) updates.bingoClaimedAt = Date.now();
                 else if (!checkBingo(newMarks) && checkBingo(currentMarks)) updates.bingoClaimedAt = null; 
                 try { await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), updates); } catch (err) {}
+            };
+
+            const handleResetBingo = async () => {
+                if (!user || !players[user.uid]) return;
+                try {
+                    await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                        bingoBoard: generateBingoBoard(),
+                        bingoMarks: [12],
+                        bingoClaimedAt: null
+                    });
+                } catch (err) {}
             };
 
             const me = players[user?.uid] || null;
@@ -583,6 +703,9 @@
             const raceLeaderboard = Object.values(players).filter(p => p.raceState?.finishTime).sort((a, b) => (a.raceState.finishTime - a.raceState.startTime) - (b.raceState.finishTime - b.raceState.startTime));
             const odometerValue = me ? String((me.raceState?.checkpoint || 0) * 142 + driveProgress * 12).padStart(6, '0') : '000000';
             
+            const totalPlatesFound = Object.keys(plates).length;
+            const platesComplete = totalPlatesFound === 50; 
+
             const activityFeed = useMemo(() => {
                 const events = Object.entries(plates).map(([st, data]) => ({ id: `plate-${st}`, type: 'plate', stateName: st, ...data, playerName: players[data.foundBy]?.name || 'Unknown', playerColor: players[data.foundBy]?.color || 'bg-gray-500' }));
                 Object.entries(players).forEach(([uid, p]) => { if (p.bingoClaimedAt) events.push({ id: `bingo-${uid}`, type: 'bingo', timestamp: p.bingoClaimedAt, playerName: p.name, playerColor: p.color }); });
@@ -591,25 +714,26 @@
 
             const globalLeaderboard = useMemo(() => {
                 const scores = {};
-                Object.keys(players).forEach(uid => { scores[uid] = { ...players[uid], score: 0, uid }; });
+                Object.keys(players).forEach(uid => { scores[uid] = { ...players[uid], score: 0, uid, plateWins: players[uid].plateWins || 0 }; });
                 Object.values(plates).forEach(plate => { if (scores[plate.foundBy]) scores[plate.foundBy].score += 1; });
-                return Object.values(scores).sort((a, b) => b.score - a.score);
+                return Object.values(scores).sort((a, b) => {
+                    if (b.plateWins !== a.plateWins) return b.plateWins - a.plateWins;
+                    return b.score - a.score;
+                });
             }, [players, plates]);
 
             if (isLoading) return <div className="h-full w-full flex items-center justify-center bg-gray-900 text-white"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
             return (
-                <div className="h-full w-full flex flex-col bg-gray-950 relative">
-                    
-                    {/* TOP CONTENT AREA */}
-                    <main className="flex-1 w-full relative overflow-hidden flex flex-col">
+                <div className="h-full w-full flex flex-col bg-gray-950 relative overflow-hidden">
+                    <main className="flex-1 w-full relative flex flex-col overflow-y-auto">
                         
-                        {/* SETUP OVERLAY (Only shows if no profile exists) */}
-                        {!me && (
-                            <div className="absolute inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
-                                <div className="bg-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-700">
+                        {/* JOIN PROFILE MODAL INSIDE RALLY TAB */}
+                        {!me && activeTab === 'rally' && (
+                            <div className="flex items-center justify-center p-4 w-full h-full min-h-max">
+                                <div className="bg-gray-800 p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-700 my-auto">
                                     <div className="text-center mb-6">
-                                        <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 drop-shadow-lg">Road Trip Games</h1>
+                                        <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 drop-shadow-lg">Road Trip Games</h1>
                                         <p className="text-gray-400 font-bold tracking-widest uppercase text-sm">Join the family!</p>
                                     </div>
                                     <form onSubmit={handleJoinGame} className="space-y-6">
@@ -634,15 +758,14 @@
                             </div>
                         )}
 
-                        {/* RALLY TAB */}
+                        {/* RALLY TAB (ACTIVE RACING) */}
                         {activeTab === 'rally' && me && (
-                            <div className="h-full w-full flex flex-col max-w-lg mx-auto bg-gray-950">
-                                
-                                <header className="h-[25dvh] min-h-[160px] w-full bg-black border-b-4 border-gray-800 p-4 pt-safe flex flex-col justify-end shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative z-20">
-                                    <div className="absolute top-safe left-4 right-4 flex justify-between items-start mt-2">
-                                        <div className="bg-gray-900/80 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-2">
-                                            <div className={`w-5 h-5 rounded-full ${myVehicleDef.bg} flex items-center justify-center text-[10px] font-bold text-white`}>{me.name.charAt(0)}</div>
-                                            <span className="text-[10px] font-bold text-gray-300 truncate max-w-[100px]">{activeRoute?.name || 'Lobby'}</span>
+                            <div className="h-full w-full flex flex-col max-w-lg mx-auto bg-gray-950 overflow-hidden">
+                                <header className="w-full bg-black border-b-4 border-gray-800 p-3 sm:p-4 pt-safe flex flex-col shadow-[0_10px_30px_rgba(0,0,0,0.8)] relative z-20 shrink-0">
+                                    <div className="flex justify-between items-start w-full mb-3">
+                                        <div className="bg-gray-900/80 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-2 max-w-[50%]">
+                                            <div className={`w-5 h-5 rounded-full ${myVehicleDef.bg} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>{(me.name || 'P').charAt(0)}</div>
+                                            <span className="text-[10px] sm:text-xs font-bold text-gray-300 truncate">{activeRoute?.name || 'Lobby'}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {status !== 'lobby' && status !== 'finished' && me.raceState?.startTime ? (
@@ -654,35 +777,35 @@
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between items-end pb-2">
+                                    <div className="flex justify-between items-end w-full pb-1">
                                         <div className="flex flex-col items-center gap-1 w-1/4">
                                             <span className="text-[9px] text-gray-500 font-black tracking-widest uppercase">Fuel</span>
-                                            <div className="h-16 w-8 bg-gray-900 border-2 border-gray-700 rounded-t-xl rounded-b-sm relative overflow-hidden flex items-end shadow-inner">
+                                            <div className="h-12 sm:h-16 w-8 bg-gray-900 border-2 border-gray-700 rounded-t-xl rounded-b-sm relative overflow-hidden flex items-end shadow-inner">
                                                 <div className={`w-full transition-all duration-300 ease-out ${gasLevel > (myVehicleDef.gasTank * 0.4) ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : gasLevel > (myVehicleDef.gasTank * 0.2) ? 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse'}`} style={{height: `${(gasLevel/(myVehicleDef.gasTank || 100))*100}%`}}></div>
                                             </div>
-                                            <span className={`text-lg mt-1 ${gasLevel <= (myVehicleDef.gasTank * 0.2) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
+                                            <span className={`text-base sm:text-lg mt-1 ${gasLevel <= (myVehicleDef.gasTank * 0.2) ? 'animate-pulse opacity-100' : 'opacity-50'}`}>⛽</span>
                                         </div>
 
                                         <div className="flex flex-col items-center justify-center w-2/4">
-                                            <div className="text-6xl font-mono font-black italic tracking-tighter dash-text tabular-nums">{simulatedSpeed}</div>
-                                            <div className="text-[10px] text-gray-500 font-black tracking-widest uppercase mt-[-5px]">MPH</div>
+                                            <div className="text-5xl sm:text-6xl font-mono font-black italic tracking-tighter dash-text tabular-nums leading-none">{simulatedSpeed}</div>
+                                            <div className="text-[10px] text-gray-500 font-black tracking-widest uppercase">MPH</div>
                                         </div>
 
                                         <div className="flex flex-col items-center gap-1 w-1/4">
                                             <span className="text-[9px] text-gray-500 font-black tracking-widest uppercase">Trip</span>
                                             <div className="bg-gray-900 border-2 border-gray-700 p-1 px-2 rounded-md shadow-inner">
-                                                <span className="font-mono text-base text-gray-300 tracking-widest">{odometerValue}</span>
+                                                <span className="font-mono text-sm sm:text-base text-gray-300 tracking-widest">{odometerValue}</span>
                                             </div>
-                                            <span className="text-xs text-gray-600 mt-1 font-black">MILES</span>
+                                            <span className="text-[10px] sm:text-xs text-gray-600 mt-1 font-black">MILES</span>
                                         </div>
                                     </div>
                                 </header>
 
-                                <div className="flex-1 w-full bg-gray-900 relative overflow-hidden flex items-center justify-center p-4">
+                                <div className="flex-1 w-full bg-gray-900 relative overflow-y-auto flex flex-col items-center justify-center p-2 sm:p-4">
                                     <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#374151 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
 
                                     {!activeRoute ? (
-                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10">
+                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 shadow-2xl relative z-10 my-auto">
                                             <h3 className="text-xl font-bold text-white mb-4 text-center">Select a Route</h3>
                                             <div className="space-y-3 h-[25vh] overflow-y-auto pr-2">
                                                 {Object.values(ROUTES).map(route => (
@@ -694,11 +817,11 @@
                                             </div>
                                         </div>
                                     ) : !me.raceState?.startTime ? (
-                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 text-center shadow-2xl relative z-10">
+                                        <div className="w-full max-w-sm bg-gray-800 rounded-2xl p-6 border-2 border-gray-700 text-center shadow-2xl relative z-10 my-auto">
                                             <h3 className="text-xl font-black text-white mb-2 uppercase tracking-widest">{activeRoute.name}</h3>
                                             <p className="text-cyan-400 font-bold mb-6 text-xs leading-relaxed break-words px-2">{activeRoute.states.join(' ➡️ ')}</p>
                                             
-                                            <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-700 text-left">
+                                            <div className="bg-gray-900 rounded-xl p-4 mb-6 border border-gray-700 text-left max-h-[150px] overflow-y-auto">
                                                 <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Players in Lobby</h4>
                                                 <div className="flex flex-wrap gap-2">
                                                     {Object.values(players).map(p => (
@@ -707,34 +830,43 @@
                                                 </div>
                                             </div>
 
-                                            <button onClick={executeGlobalStart} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.6)] text-xl tracking-widest uppercase active:scale-95">Start For Everyone</button>
-                                            <button onClick={() => setRaceData({active:false})} className="mt-4 text-gray-500 text-xs font-bold uppercase tracking-widest underline">Change Route</button>
+                                            {!raceData.globalStartTime ? (
+                                                <>
+                                                    <button onClick={executeGlobalStart} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.6)] text-base sm:text-lg tracking-widest uppercase active:scale-95">Start For Everyone</button>
+                                                    <button onClick={handleChangeRoute} className="mt-4 text-gray-500 text-xs font-bold uppercase tracking-widest underline p-2">Cancel Race / Change Route</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button onClick={() => setQuitRaceId(null)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.6)] text-base sm:text-lg tracking-widest uppercase active:scale-95">Rejoin Race</button>
+                                                    <button onClick={handleChangeRoute} className="mt-4 text-red-500/80 text-xs font-bold uppercase tracking-widest underline p-2">End Race For Everyone</button>
+                                                </>
+                                            )}
                                         </div>
                                     ) : status === 'finished' ? (
-                                        <div className="w-full max-w-sm space-y-4 relative z-10">
+                                        <div className="w-full max-w-sm space-y-4 relative z-10 my-auto">
                                             <div className="bg-gray-800 rounded-2xl p-6 border-2 border-cyan-700 shadow-[0_0_20px_rgba(6,182,212,0.3)] text-center">
                                                 <div className="text-5xl mb-2">🏁</div>
-                                                <h3 className="text-2xl font-black text-white">ROUTE COMPLETE!</h3>
-                                                <div className="text-4xl font-mono font-black text-cyan-400 mt-2">{currentTime}</div>
+                                                <h3 className="text-xl sm:text-2xl font-black text-white">ROUTE COMPLETE!</h3>
+                                                <div className="text-3xl sm:text-4xl font-mono font-black text-cyan-400 mt-2">{currentTime}</div>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button onClick={executeDropOut} className="flex-1 bg-gray-800 text-gray-300 text-sm font-bold py-3 rounded-xl border border-gray-600 active:scale-95">Leave Race</button>
-                                                <button onClick={() => updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'gameData', 'highwayRace'), { active: false, globalStartTime: null })} className="flex-1 bg-red-900/50 text-red-300 text-sm font-bold py-3 rounded-xl border border-red-800 active:scale-95">Reset All</button>
+                                                <button onClick={handleChangeRoute} className="flex-1 bg-red-900/50 text-red-300 text-sm font-bold py-3 rounded-xl border border-red-800 active:scale-95">End For Everyone</button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex flex-col justify-center relative z-10 p-2">
+                                        <div className="w-full h-full flex flex-col justify-center relative z-10 p-1 sm:p-2">
                                             
                                             {status === 'decision' && activeDecision && (
-                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-6 flex flex-col items-center justify-center text-center z-30">
-                                                    <div className="text-6xl mb-2">{activeDecision.icon}</div>
-                                                    <h3 className="text-lg font-bold text-white mb-4">{activeDecision.text}</h3>
-                                                    <p className="text-purple-300 text-xs font-bold uppercase tracking-widest mb-6">Silly Situation!</p>
-                                                    <div className="w-full flex flex-col gap-3">
-                                                        <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-4 shadow-lg text-lg">
+                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-purple-500 shadow-2xl p-4 flex flex-col items-center justify-start overflow-y-auto text-center z-30">
+                                                    <div className="text-4xl sm:text-5xl mb-2 shrink-0">{activeDecision.icon}</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activeDecision.text}</h3>
+                                                    <p className="text-purple-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Silly Situation!</p>
+                                                    <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
+                                                        <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base">
                                                             {activeDecision.riskText}
                                                         </button>
-                                                        <button onClick={() => handleDecision(false)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-4 shadow-lg text-lg">
+                                                        <button onClick={() => handleDecision(false)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base">
                                                             {activeDecision.safeText}
                                                         </button>
                                                     </div>
@@ -742,47 +874,47 @@
                                             )}
                                             
                                             {status === 'decisionResult' && decisionResultData && (
-                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-gray-600 shadow-2xl p-6 flex flex-col items-center justify-center text-center z-30">
-                                                    <div className={`text-2xl font-black uppercase tracking-wide mb-2 ${decisionResultData.color}`}>{decisionResultData.msg}</div>
+                                                <div className="absolute inset-2 bg-gray-800/95 backdrop-blur-md rounded-2xl border-2 border-gray-600 shadow-2xl p-6 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                    <div className={`text-xl sm:text-2xl font-black uppercase tracking-wide mb-2 ${decisionResultData.color}`}>{decisionResultData.msg}</div>
                                                     <p className="text-gray-400 font-bold text-sm">Resuming race...</p>
                                                 </div>
                                             )}
 
                                             {status === 'random_event' && activeRandomEvent && (
-                                                <div className="absolute inset-2 bg-yellow-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-500 shadow-2xl p-6 flex flex-col items-center justify-center text-center z-30">
-                                                    <div className="text-6xl mb-4 animate-bounce">{activeRandomEvent.icon}</div>
-                                                    <h3 className="text-xl font-black text-white mb-2">{activeRandomEvent.title}</h3>
-                                                    <p className="text-yellow-300 font-bold mb-6">{activeRandomEvent.text}</p>
-                                                    <div className="text-6xl font-mono font-black text-white py-4 tabular-nums">
+                                                <div className="absolute inset-2 bg-yellow-900/95 backdrop-blur-md rounded-2xl border-2 border-yellow-500 shadow-2xl p-4 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                    <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">{activeRandomEvent.icon}</div>
+                                                    <h3 className="text-lg sm:text-xl font-black text-white mb-2">{activeRandomEvent.title}</h3>
+                                                    <p className="text-yellow-300 text-sm sm:text-base font-bold mb-4">{activeRandomEvent.text}</p>
+                                                    <div className="text-5xl sm:text-6xl font-mono font-black text-white py-2 tabular-nums shrink-0">
                                                         00:{String(eventTimer).padStart(2, '0')}
                                                     </div>
                                                 </div>
                                             )}
 
                                             {(status === 'out_of_gas' || status === 'refueling') && (
-                                                <div className="absolute inset-2 bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-red-900 shadow-2xl p-6 flex flex-col items-center justify-center text-center z-30">
-                                                    <div className="text-6xl mb-4 animate-bounce">⛽</div>
-                                                    <div className={`text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : 'text-yellow-400'}`}>
+                                                <div className="absolute inset-2 bg-gray-900/95 backdrop-blur-md rounded-2xl border-2 border-red-900 shadow-2xl p-4 flex flex-col items-center justify-center overflow-y-auto text-center z-30">
+                                                    <div className="text-5xl sm:text-6xl mb-4 animate-bounce shrink-0">⛽</div>
+                                                    <div className={`text-lg sm:text-xl font-black uppercase tracking-widest ${status === 'out_of_gas' ? 'text-red-500 alert-text animate-pulse' : 'text-yellow-400'}`}>
                                                         {status === 'out_of_gas' ? 'OUT OF GAS PENALTY' : 'PUMPING GAS...'}
                                                     </div>
-                                                    <div className="text-6xl font-mono font-black text-white py-4 tabular-nums">
+                                                    <div className="text-5xl sm:text-6xl font-mono font-black text-white py-4 tabular-nums shrink-0">
                                                         00:{String(refuelTimer).padStart(2, '0')}
                                                     </div>
                                                 </div>
                                             )}
 
                                             {status === 'trivia' && activeTrivia && (
-                                                <div className="absolute inset-2 bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-500 shadow-2xl p-4 flex flex-col z-30">
-                                                    <div className="flex justify-between items-center text-blue-300 font-black uppercase tracking-widest text-[10px] mb-2">
+                                                <div className="absolute inset-2 bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-500 shadow-2xl p-3 flex flex-col overflow-y-auto z-30">
+                                                    <div className="flex justify-between items-center text-blue-300 font-black uppercase tracking-widest text-[10px] mb-2 shrink-0">
                                                         <span>{STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Border</span>
                                                         <span>Q {triviaStep + 1} of 2</span>
                                                     </div>
-                                                    <div className="flex-1 flex items-center justify-center bg-gray-900/50 rounded-xl border border-blue-800 p-4 relative overflow-hidden">
-                                                        <h3 className="text-lg font-bold text-white text-center leading-snug">
+                                                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-900/50 rounded-xl border border-blue-800 p-3 sm:p-4 relative overflow-hidden">
+                                                        <h3 className="text-base sm:text-lg font-bold text-white text-center leading-snug mb-2">
                                                             {activeTrivia.q}
                                                         </h3>
                                                         {triviaMsg && (
-                                                            <div className={`absolute inset-0 flex items-center justify-center font-black text-2xl z-30 ${triviaMsg.includes('WRONG') ? 'bg-red-600 text-white' : 'bg-green-500 text-white'}`}>
+                                                            <div className={`absolute inset-0 flex items-center justify-center font-black text-xl sm:text-2xl z-30 ${triviaMsg.includes('WRONG') ? 'bg-red-600 text-white' : 'bg-green-500 text-white'}`}>
                                                                 {triviaMsg}
                                                             </div>
                                                         )}
@@ -790,21 +922,21 @@
                                                 </div>
                                             )}
 
-                                            <div className="bg-black/50 rounded-2xl p-4 border border-gray-800 relative shadow-inner">
+                                            <div className="bg-black/50 rounded-2xl p-3 sm:p-4 border border-gray-800 relative shadow-inner mt-auto mb-auto">
                                                 <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-4 flex justify-between">
                                                     <span>GPS Route</span>
                                                 </div>
                                                 
                                                 <div className="relative h-1 bg-gray-800 rounded-full mb-8 mx-2">
-                                                    <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / 9) * 100}%` }}></div>
+                                                    <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
                                                     <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-2">
                                                         {activeRoute.states.map((st, i) => {
                                                             const isPast = i < (me.raceState?.checkpoint || 0);
                                                             const isCurrent = i === (me.raceState?.checkpoint || 0);
                                                             return (
                                                                 <div key={i} className="relative flex flex-col items-center">
-                                                                    <div className={`w-4 h-4 rounded-full border-2 z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
-                                                                    <div className={`absolute top-6 text-[9px] font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
+                                                                    <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
+                                                                    <div className={`absolute top-5 sm:top-6 text-[8px] sm:text-[9px] font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
                                                                 </div>
                                                             );
                                                         })}
@@ -812,18 +944,18 @@
                                                 </div>
                                                 
                                                 {status === 'driving' && (
-                                                    <div className="mt-6">
+                                                    <div className="mt-4 sm:mt-6">
                                                         <div className="text-[9px] text-gray-500 font-bold uppercase tracking-widest text-center mb-1">
                                                             Distance to {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} ({activeRoute.states[me.raceState?.checkpoint || 0]})
                                                         </div>
-                                                        <div className="h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-3">
+                                                        <div className="h-2 sm:h-3 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-2 sm:mb-3">
                                                             <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-75" style={{ width: `${(driveProgress / myVehicleDef.driveTaps) * 100}%` }}></div>
                                                         </div>
                                                         <div className="bg-gray-900/80 border border-gray-700 rounded-lg p-2 text-center shadow-inner">
                                                             <div className="text-cyan-400 font-black text-[9px] uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
                                                                 <span>💡</span> {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Fact
                                                             </div>
-                                                            <div className="text-gray-300 text-xs font-bold leading-tight px-2">
+                                                            <div className="text-gray-300 text-[10px] sm:text-xs font-bold leading-tight px-1 sm:px-2">
                                                                 {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.fact}
                                                             </div>
                                                         </div>
@@ -834,84 +966,77 @@
                                     )}
                                 </div>
 
-                                <footer className="h-[35dvh] min-h-[220px] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 flex-shrink-0">
+                                <footer className="h-[25dvh] min-h-[160px] w-full bg-gray-900 border-t-8 border-gray-950 relative z-20 shrink-0">
                                     {status === 'finished' || !me.raceState?.startTime ? (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-2xl uppercase tracking-widest">
+                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-xl sm:text-2xl uppercase tracking-widest">
                                             ENGINE OFF
                                         </div>
                                     ) : status === 'driving' ? (
-                                        <div className="w-full h-full flex gap-3 p-4">
+                                        <div className="w-full h-full flex gap-3 p-3 sm:p-4">
                                             <div className="w-1/3 flex flex-col gap-3 h-full">
                                                 <button onClick={() => { setReturnStatus('driving'); setStatus('refueling'); setRefuelTimer(10); }} className="h-full pedal-brake bg-gradient-to-b from-red-700 to-red-900 rounded-xl border-x-4 border-b-8 border-red-950 flex flex-col items-center justify-center transition-transform cursor-pointer">
-                                                    <span className="text-[10px] font-black text-red-200 uppercase tracking-widest opacity-70 mb-1">PIT STOP</span>
-                                                    <span className="font-black text-xl text-white">10 SEC</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-red-200 uppercase tracking-widest opacity-70 mb-1">PIT STOP</span>
+                                                    <span className="font-black text-lg sm:text-xl text-white">10 SEC</span>
                                                 </button>
                                             </div>
                                             <div className="w-2/3 h-full">
                                                 <button onClick={handleDrive} className="w-full h-full pedal-gas bg-gradient-to-b from-gray-600 to-gray-800 rounded-2xl border-x-8 border-b-[16px] border-gray-950 flex flex-col items-center justify-center transition-transform overflow-hidden relative cursor-pointer">
                                                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, #000 10px, #000 20px)' }}></div>
-                                                    <span className="relative z-10 text-sm font-black text-gray-400 uppercase tracking-widest mb-2">ACCELERATE</span>
-                                                    <span className="relative z-10 font-black text-5xl text-gray-200 tracking-wider">GAS</span>
+                                                    <span className="relative z-10 text-xs sm:text-sm font-black text-gray-400 uppercase tracking-widest mb-1 sm:mb-2">ACCELERATE</span>
+                                                    <span className="relative z-10 font-black text-4xl sm:text-5xl text-gray-200 tracking-wider">GAS</span>
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : status === 'decision' && activeDecision ? (
-                                        <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                            <div className="text-purple-400 font-black text-2xl uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
-                                            <div className="text-gray-500 font-bold text-sm mt-2 text-center">Check Dashboard!</div>
-                                        </div>
-                                    ) : status === 'random_event' ? (
-                                        <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                            <div className="text-yellow-400 font-black text-2xl uppercase tracking-widest animate-pulse text-center">⚠️ MANDATORY STOP ⚠️</div>
-                                            <div className="text-gray-500 font-bold text-sm mt-2 text-center">Wait for the timer!</div>
+                                    ) : (status === 'decision' || status === 'random_event') ? (
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                                            <div className="text-purple-400 font-black text-lg sm:text-xl uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
+                                            <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Pedals Locked. Check Screen!</div>
                                         </div>
                                     ) : status === 'decisionResult' ? (
-                                        <div className="w-full h-full flex items-center justify-center text-blue-400 font-black text-2xl uppercase tracking-widest animate-pulse">
+                                        <div className="w-full h-full flex items-center justify-center text-blue-400 font-black text-lg sm:text-xl uppercase tracking-widest animate-pulse">
                                             RESOLVING...
                                         </div>
                                     ) : status === 'trivia' && activeTrivia ? (
-                                        <div className="w-full h-full p-3 grid grid-cols-2 gap-2">
+                                        <div className="w-full h-full p-2 grid grid-cols-2 gap-2">
                                             {activeTrivia.opts.map((opt, idx) => (
-                                                <button key={idx} disabled={!!triviaMsg} onClick={() => handleTriviaAnswer(opt.isCorrect)} className={`rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center p-2 leading-tight ${triviaMsg ? 'opacity-50' : 'bg-blue-700 border-b-8 border-blue-950 hover:bg-blue-600 active:border-b-0 active:translate-y-2 text-white cursor-pointer'}`}>
+                                                <button key={idx} disabled={!!triviaMsg} onClick={() => handleTriviaAnswer(opt.isCorrect)} className={`rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center p-2 leading-tight ${triviaMsg ? 'opacity-50' : 'bg-blue-700 border-b-8 border-blue-950 hover:bg-blue-600 active:border-b-0 active:translate-y-2 text-white cursor-pointer'}`}>
                                                     {opt.text}
                                                 </button>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-2xl uppercase tracking-widest">
+                                        <div className="w-full h-full flex items-center justify-center text-gray-700 font-black text-xl sm:text-2xl uppercase tracking-widest">
                                             PEDALS LOCKED
                                         </div>
                                     )}
                                 </footer>
-                                
-                                {confirmQuit && (
-                                    <div className="absolute inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                                        <div className="bg-gray-800 rounded-2xl p-6 border-2 border-red-900 shadow-2xl text-center max-w-xs w-full">
-                                            <div className="text-4xl mb-4">⚠️</div>
-                                            <h3 className="text-xl font-black text-white mb-2">Drop Out?</h3>
-                                            <p className="text-gray-400 text-sm font-bold mb-6">Are you sure you want to leave this race? Your progress will be lost.</p>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => setConfirmQuit(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
-                                                <button onClick={executeDropOut} className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.5)]">Quit Race</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         )}
 
-                        {/* OTHER TABS (Plates, Bingo, Rank, Feed) */}
-                        {activeTab === 'plates' && me && (
-                            <div className="p-4 overflow-y-auto h-full">
+                        {/* PLATES TAB */}
+                        {activeTab === 'plates' && (
+                            <div className="p-4 overflow-y-auto h-full pb-20">
                                 <h2 className="text-xl font-bold text-white mb-4">License Plate Hunt</h2>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 pb-20">
+                                
+                                {platesComplete && (
+                                    <div className="bg-gradient-to-r from-yellow-500 to-amber-600 rounded-xl p-4 text-center shadow-[0_0_20px_rgba(245,158,11,0.5)] mb-6 text-white">
+                                        <span className="text-4xl block mb-2">🏆</span>
+                                        <h2 className="text-2xl font-black uppercase tracking-widest mb-1">HUNT COMPLETE!</h2>
+                                        <p className="font-bold mb-4">{getPlateWinnerNames()} won this round!</p>
+                                        <button onClick={handleResetPlates} disabled={isResettingPlates} className="bg-white text-yellow-600 px-6 py-3 rounded-xl font-black uppercase tracking-widest shadow-md active:scale-95 transition-all">
+                                            Start New Game
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                     {Object.keys(STATE_DATA).map((state) => {
                                         const isFound = plates[state];
                                         const finder = isFound ? players[isFound.foundBy] : null;
                                         const isOwner = isFound && user && isFound.foundBy === user.uid;
                                         return (
-                                            <button key={state} onClick={() => { if (!isFound) setClaimingState(state); else if (isOwner) setUnclaimingState(state); }} disabled={isFound && !isOwner} className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all duration-200 border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50 hover:border-white' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-700 active:scale-95'}`}>
-                                                <span className="font-semibold text-sm leading-tight truncate w-full px-1">{state}</span>
+                                            <button key={state} onClick={() => { if (!me) return; if (!isFound) setClaimingState(state); else if (isOwner) setUnclaimingState(state); }} disabled={(isFound && !isOwner) || !me} className={`relative w-full aspect-[2/1] rounded-lg p-2 flex flex-col justify-center items-center text-center transition-all duration-200 border-2 shadow-sm ${isFound ? `${finder?.color || 'bg-gray-500'} ${isOwner ? 'border-white/50 hover:border-white' : 'border-transparent'} text-white opacity-90 scale-[0.98]` : 'bg-gray-800 border-gray-600 hover:border-blue-400 text-gray-300 hover:bg-gray-700 active:scale-95'} ${!me ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                <span className="font-semibold text-xs sm:text-sm leading-tight truncate w-full px-1">{state}</span>
                                                 {isFound && <span className="text-[10px] mt-1 bg-black/30 px-2 py-0.5 rounded-full truncate max-w-[90%]">by {finder?.name || '?'}</span>}
                                                 {isOwner && <span className="absolute top-1 right-1 text-[8px] bg-black/40 rounded-full w-4 h-4 flex items-center justify-center">✕</span>}
                                             </button>
@@ -921,44 +1046,64 @@
                             </div>
                         )}
 
-                        {activeTab === 'bingo' && me && (
+                        {/* BINGO TAB */}
+                        {activeTab === 'bingo' && (
                             <div className="p-4 overflow-y-auto h-full pb-20">
                                 <h2 className="text-xl font-bold text-white mb-4">Road Trip Bingo</h2>
-                                <div className="bg-gray-800 p-2 sm:p-4 rounded-xl border border-gray-700 shadow-inner">
-                                    <div className="grid grid-cols-5 gap-1 sm:gap-2">
-                                        {me.bingoBoard?.map((item, index) => {
-                                            const isMarked = (me.bingoMarks || []).includes(index);
-                                            const isFree = index === 12;
-                                            return (
-                                                <button key={index} onClick={() => handleToggleBingo(index)} className={`relative aspect-square rounded sm:rounded-md p-1 flex items-center justify-center text-center transition-all duration-200 border-2 shadow-sm overflow-hidden ${isMarked ? `${me.color} border-white/50 text-white scale-[0.96]` : 'bg-gray-700 border-gray-600 hover:border-blue-400 text-gray-300'} ${isFree ? 'font-black' : 'font-semibold'}`}>
-                                                    <span className="text-[9px] sm:text-xs leading-tight break-words pointer-events-none">{item}</span>
-                                                </button>
-                                            );
-                                        })}
+                                
+                                {Object.values(players).some(p => checkBingo(p.bingoMarks)) && (
+                                    <div className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-xl p-4 text-center shadow-[0_0_15px_rgba(34,197,94,0.5)] mb-6 animate-pulse text-white font-black text-lg sm:text-xl">
+                                        🎉 BINGO! {Object.values(players).filter(p => checkBingo(p.bingoMarks)).map(p => p.name).join(', ')} won! 🎉
                                     </div>
-                                </div>
+                                )}
+
+                                {me && me.bingoBoard ? (
+                                    <>
+                                        <div className="bg-gray-800 p-2 sm:p-4 rounded-xl border border-gray-700 shadow-inner mb-4">
+                                            <div className="grid grid-cols-5 gap-1 sm:gap-2">
+                                                {me.bingoBoard?.map((item, index) => {
+                                                    const isMarked = (me.bingoMarks || []).includes(index);
+                                                    const isFree = index === 12;
+                                                    return (
+                                                        <button key={index} onClick={() => handleToggleBingo(index)} className={`relative aspect-square rounded sm:rounded-md p-1 flex items-center justify-center text-center transition-all duration-200 border-2 shadow-sm overflow-hidden ${isMarked ? `${me.color} border-white/50 text-white scale-[0.96]` : 'bg-gray-700 border-gray-600 hover:border-blue-400 text-gray-300'} ${isFree ? 'font-black' : 'font-semibold'}`}>
+                                                            <span className="text-[8px] sm:text-[10px] leading-tight break-words pointer-events-none">{item}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        <button onClick={handleResetBingo} className="w-full bg-gray-800 border border-gray-600 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-xl transition-all active:scale-95 shadow-md">
+                                            Start Fresh Board
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="text-center text-gray-500 py-10">You need to join the game to get a Bingo Board!</div>
+                                )}
                             </div>
                         )}
 
+                        {/* LEADERBOARD TAB */}
                         {activeTab === 'leaderboard' && (
                             <div className="p-4 overflow-y-auto h-full pb-20 space-y-3">
                                 <h2 className="text-xl font-bold text-white mb-4">Top Spotters</h2>
                                 {globalLeaderboard.map((player, index) => (
-                                    <div key={player.uid} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-700">
+                                    <div key={player.uid} className="bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-700 relative overflow-hidden">
+                                        {player.plateWins > 0 && <div className="absolute top-0 right-0 bg-yellow-500/20 px-2 py-1 rounded-bl-lg text-[10px] font-black text-yellow-500">{(player.plateWins || 0)}x CHAMP</div>}
                                         <div className="flex items-center gap-4">
                                             <div className="text-2xl w-8 text-center font-bold text-gray-500">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</div>
                                             <div className={`w-12 h-12 rounded-full ${player.color} flex items-center justify-center text-xl font-bold text-white shadow-inner`}>{player.name.charAt(0)}</div>
                                             <h3 className="font-bold text-lg text-white">{player.name}</h3>
                                         </div>
-                                        <div className="text-center">
-                                            <div className="text-3xl font-black text-white">{player.score}</div>
-                                            <div className="text-xs text-gray-400 uppercase tracking-wide">Plates</div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-black text-white">{player.score} <span className="text-[10px] font-normal text-gray-400">pts</span></div>
+                                            <div className="text-sm font-bold text-yellow-500">{player.plateWins || 0} <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Wins</span></div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
 
+                        {/* ACTIVITY TAB */}
                         {activeTab === 'activity' && (
                             <div className="p-4 overflow-y-auto h-full pb-20">
                                 <h2 className="text-xl font-bold text-white mb-4">Activity Feed</h2>
@@ -1010,9 +1155,23 @@
                             </div>
                         </div>
                     )}
+                    
+                    {confirmQuit && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-gray-800 rounded-2xl p-6 border-2 border-red-900 shadow-2xl text-center max-w-xs w-full">
+                                <div className="text-4xl mb-4">⚠️</div>
+                                <h3 className="text-xl font-black text-white mb-2">Drop Out?</h3>
+                                <p className="text-gray-400 text-sm font-bold mb-6">Are you sure you want to leave this race? Your progress will be lost.</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setConfirmQuit(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
+                                    <button onClick={executeDropOut} className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.5)]">Quit Race</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                    {/* BOTTOM NAVIGATION */}
-                    <nav className="bg-gray-800 border-t border-gray-700 pb-safe flex-shrink-0 z-40 relative">
+                    {/* BOTTOM NAV */}
+                    <nav className="bg-gray-800 border-t border-gray-700 pb-safe shrink-0 z-40 relative">
                         <div className="flex justify-around items-center h-16 max-w-4xl mx-auto px-2">
                             <button onClick={() => setActiveTab('plates')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'plates' ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'}`}>
                                 <span className="text-xl mb-1">🗺️</span><span className="text-[10px] font-bold tracking-wide">MAP</span>
