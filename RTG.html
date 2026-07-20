@@ -92,7 +92,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
-        const GAME_VERSION = "v5.1.0 - The Great Economy Patch";
+        const GAME_VERSION = "v5.2.0 - Decision Reward Overhaul";
         
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
@@ -213,10 +213,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
         const DECISIONS = [
             { id: 'pvg1', icon: "🗺️", text: "The GPS says stay on the highway, but you see a dirt road that might save time.", riskText: "Take the Dirt Road", safeText: "Stay on Highway", opt1: { successChance: 0.5, sMsg: "MASSIVE SHORTCUT!", sTime: -2, sCost: 0, fMsg: "STUCK IN MUD!", fTime: 4, fCost: 200 }, opt2: { msg: "BORING BUT SAFE", time: 1, cost: 0 } },
-            { id: 'pvg2', icon: "🎵", text: "Backseat passengers demand the aux cord to play 20 hours of terrible internet memes.", riskText: "Fight for Control", safeText: "Surrender Aux", opt1: { successChance: 0.6, sMsg: "PEACE AND QUIET", sTime: 0, sCost: 0, fMsg: "SWERVING ARGUMENT!", fTime: 2, fCost: 100 }, opt2: { msg: "EARS BLEEDING", time: 0, cost: 20 } },
-            { id: 'pvg3', icon: "🍣", text: "Everyone is starving. The only option is a corporate Mega-Mart selling discounted tuna rolls.", riskText: "Eat the Sushi", safeText: "Buy Granola", opt1: { successChance: 0.4, sMsg: "DELICIOUS & CHEAP", sTime: 0, sCost: 10, fMsg: "FOOD POISONING!", fTime: 6, fCost: 300 }, opt2: { msg: "SO BORING", time: 1, cost: 40 } },
-            { id: 'd4', icon: "🥜", text: "You spot a billboard for the 'World's Largest Peanut'. It is 40 miles out of the way.", riskText: "Go See It", safeText: "Keep Driving", opt1: { successChance: 0.7, sMsg: "AMAZING PEANUT!", sTime: 3, sCost: 50, fMsg: "IT WAS CLOSED!", fTime: 4, fCost: 40 }, opt2: { msg: "NO TIME FOR NUTS", time: 0, cost: 0 } },
-            { id: 'd5', icon: "🐄", text: "The road is completely blocked by a massive herd of stubborn cows.", riskText: "Honk Horn Aggressively", safeText: "Wait Patiently", opt1: { successChance: 0.3, sMsg: "THEY MOVED!", sTime: 0, sCost: 0, fMsg: "COW ATTACK!", fTime: 4, fCost: 300 }, opt2: { msg: "ZEN PATIENCE", time: 3, cost: 0 } },
+            { id: 'pvg2', icon: "🎵", text: "Backseat passengers demand the aux cord to play 20 hours of terrible internet memes.", riskText: "Fight for Control", safeText: "Surrender Aux", opt1: { successChance: 0.6, successPool: [ { sMsg: "TOTAL DOMINANCE! They fell asleep.", sTime: -1, sCost: 0 }, { sMsg: "FOUND CASH! Found money in the seats while wrestling!", sTime: 0, sCost: -50 } ], fMsg: "SWERVING ARGUMENT!", fTime: 2, fCost: 100 }, opt2: { msg: "EARS BLEEDING", time: 0, cost: 20 } },
+            { id: 'pvg3', icon: "🍣", text: "Everyone is starving. The only option is a corporate Mega-Mart selling discounted tuna rolls.", riskText: "Eat the Sushi", safeText: "Buy Granola", opt1: { successChance: 0.5, successPool: [ { sMsg: "SURPRISINGLY GOURMET! Full energy & saved cash!", sTime: 0, sCost: 10, energyBoost: true }, { sMsg: "MEGA-MART GLITCH! Sushi scanned for $0.01!", sTime: 0, sCost: 0 } ], fMsg: "FOOD POISONING!", fTime: 6, fCost: 300 }, opt2: { msg: "SO BORING", time: 1, cost: 40 } },
+            { id: 'd4', icon: "🥜", text: "You spot a billboard for the 'World's Largest Peanut'. It is 40 miles out of the way.", riskText: "Go See It", safeText: "Keep Driving", opt1: { successChance: 0.6, successPool: [ { sMsg: "1,000,000th VISITOR! Won cash prize!", sTime: 1, sCost: -500 }, { sMsg: "MAJESTIC PEANUT! Energy fully restored!", sTime: 1, sCost: 10, energyBoost: true }, { sMsg: "LOCAL SHORTCUT! Found a hidden backroad!", sTime: -3, sCost: 10 } ], fMsg: "IT WAS CLOSED!", fTime: 4, fCost: 40 }, opt2: { msg: "NO TIME FOR NUTS", time: 0, cost: 0 } },
+            { id: 'd5', icon: "🐄", text: "The road is completely blocked by a massive herd of stubborn cows.", riskText: "Honk Horn Aggressively", safeText: "Wait Patiently", opt1: { successChance: 0.4, successPool: [ { sMsg: "THEY MOVED! You saved massive time!", sTime: -2, sCost: 0 }, { sMsg: "FARMER TIPPED YOU! He needed them to run!", sTime: 0, sCost: -100 } ], fMsg: "COW ATTACK!", fTime: 4, fCost: 300 }, opt2: { msg: "ZEN PATIENCE", time: 3, cost: 0 } },
             { id: 'd6', icon: "👍", text: "A hitchhiker is holding a sign that says 'Not a Serial Killer'. Seems legit.", riskText: "Pick Them Up", safeText: "Lock Doors & Floor It", opt1: { successChance: 0.3, sMsg: "HE PAID YOU GAS MONEY!", sTime: 1, sCost: -200, fMsg: "HE STOLE YOUR WALLET!", fTime: 2, fCost: 400 }, opt2: { msg: "SAFE CALL", time: 0, cost: 0 } },
             
             { id: 'maga1', isMaga: true, text: "A guy in a tin-foil hat blocks the road, screaming that solar panels drain the sun's energy!", riskText: "Drop Truth & Facts!", safeText: "Agree to Disagree", icon: "🇺🇸", opt1: { successChance: 0.4, sMsg: "FACTS WON!", sTime: -1, sCost: 0, fMsg: "FAKE NEWS!", fTime: 3, fCost: 150 }, opt2: { msg: "NODDED SLOWLY", time: 2, cost: 0 } },
@@ -1026,7 +1026,15 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
                     const success = Math.random() < (activeDecision.opt1.successChance || 0.5);
                     if (success) {
-                        applyEconomyChange(-activeDecision.opt1.sCost, activeDecision.opt1.sTime, activeDecision.opt1.sMsg, false);
+                        if (activeDecision.opt1.successPool) {
+                            const randomOutcome = activeDecision.opt1.successPool[Math.floor(Math.random() * activeDecision.opt1.successPool.length)];
+                            if (randomOutcome.energyBoost) {
+                                setDriverEnergy(100);
+                            }
+                            applyEconomyChange(-randomOutcome.sCost, randomOutcome.sTime, randomOutcome.sMsg, false);
+                        } else {
+                            applyEconomyChange(-activeDecision.opt1.sCost, activeDecision.opt1.sTime, activeDecision.opt1.sMsg, false);
+                        }
                     } else {
                         applyEconomyChange(-activeDecision.opt1.fCost, activeDecision.opt1.fTime, activeDecision.opt1.fMsg, true);
                     }
@@ -1907,8 +1915,8 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0 pt-4">
                                                         <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg flex flex-col items-center text-sm">
                                                             <span>{activeDecision.riskText}</span>
-                                                            {activeDecision.opt1.sCost !== undefined && (
-                                                                <span className="text-[10px] text-purple-200 mt-1 font-bold">Chance of Cost: ${activeDecision.opt1.fCost} | Time: +{activeDecision.opt1.fTime} hrs</span>
+                                                            {(activeDecision.opt1.sCost !== undefined || activeDecision.opt1.successPool) && (
+                                                                <span className="text-[10px] text-purple-200 mt-1 font-bold">Failure Risk: ${activeDecision.opt1.fCost} | Time: +{activeDecision.opt1.fTime} hrs</span>
                                                             )}
                                                         </button>
                                                         <button onClick={() => handleDecision(false)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg flex flex-col items-center text-sm">
