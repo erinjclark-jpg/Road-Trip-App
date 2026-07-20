@@ -92,7 +92,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
-        const GAME_VERSION = "v5.2.0 - Decision Reward Overhaul";
+        const GAME_VERSION = "v5.3.0 - The Gig Economy";
         
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
@@ -134,6 +134,17 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             rv: { id: 'rv', name: 'Family RV', icon: '🚐', color: 'text-green-400', bg: 'bg-green-500', gasTank: 300, mpgCost: 150, driveTaps: 200, handling: 1.5, luck: -0.1, timeMod: 1.4, capacity: 10, desc: 'Slow & Steady. Brutal gas mileage, but unlocks a $20 RV Park option to safely restore full energy overnight! (Capacity: 10)' },
             tahoe: { id: 'tahoe', name: 'Tahoe & 5x8 Trailer', icon: '🛻', color: 'text-gray-300', bg: 'bg-gray-700', gasTank: 200, mpgCost: 180, driveTaps: 170, handling: 1.2, luck: 0.1, timeMod: 1.0, capacity: 7, desc: '2019 Chevy Tahoe pulling a utility trailer. Destroys your wallet at the pump, but gives Cargo Immunity (no inside spills) and holds snow tires! (Capacity: 7)' }
         };
+
+        const ODD_JOBS_POOL = [
+            { name: "Wash Dishes at Diner", earn: 60, time: 2, energy: 15, icon: "🍽️" },
+            { name: "Help a Local Farmer", earn: 120, time: 4, energy: 30, icon: "🚜" },
+            { name: "Day Labor Construction", earn: 200, time: 6, energy: 50, icon: "🔨" },
+            { name: "Fix a Local's Solar Array", earn: 300, time: 5, energy: 40, icon: "☀️" },
+            { name: "Walk Dogs at RV Park", earn: 40, time: 1, energy: 10, icon: "🐕" },
+            { name: "Change Semi-Truck Tires", earn: 250, time: 7, energy: 60, icon: "🛞" },
+            { name: "Scrub the Gas Station Bathroom", earn: 80, time: 2, energy: 35, icon: "🧽" },
+            { name: "Direct Traffic for Road Crew", earn: 150, time: 4, energy: 25, icon: "🛑" }
+        ];
 
         const WEATHER_EVENTS = [
             { id: 'we1', title: 'Blizzard & Snowball Ambush!', icon: '❄️', text: "A freak blizzard hits! Local kids have set up a snow fort and are pelting the road with snowballs!", options: (vid) => { if (vid === 'tahoe') return [ { text: "[Tahoe Perk] Use Trailer Snow Tires", cost: 0, time: 0, msg: "The Tahoe dominates the snow." }, { text: "Join the snowball fight!", cost: 0, time: 3, msg: "{NAME} got a headshot!" } ]; if (vid === 'sport') return [ { text: "[Sports Car Flaw] Stuck! Pay for tow.", cost: 150, time: 1, msg: "Rear-wheel drive in snow is bad." }, { text: "Dig it out with an ice scraper.", cost: 0, time: 5, energyCost: 50, msg: "Exhausting, miserable work." } ]; return [ { text: "Join the snowball fight!", cost: 0, time: 3, msg: "{NAME} got a headshot!" }, { text: "Buy tire chains.", cost: 80, time: 1, msg: "Prepared for the weather." } ]; } },
@@ -376,6 +387,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             const [hasFacedPoi, setHasFacedPoi] = useState(false);
             const [activePoi, setActivePoi] = useState(null);
+            const [activeOddJobs, setActiveOddJobs] = useState([]);
             
             const [hasFacedFood, setHasFacedFood] = useState(false);
             const [activeFoodOptions, setActiveFoodOptions] = useState([]);
@@ -467,6 +479,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         setUsedDecisions([]);
                         setUsedEvents([]);
                         setUsedPoiNames([]);
+                        setActiveOddJobs([]);
                         setGasLevel(v.gasTank);
                         setAccountBalance(me.raceState.balance || 10000);
                         setTripHoursFloat(me.raceState.tripHours || 8);
@@ -483,6 +496,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     }
                 } else if (status !== 'lobby') {
                     setStatus('lobby');
+                    setActiveOddJobs([]);
                 }
             }, [status, players, user?.uid, appDb]);
 
@@ -578,6 +592,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     setUsedDecisions([]);
                     setUsedEvents([]);
                     setUsedPoiNames([]);
+                    setActiveOddJobs([]);
                     setStatus('driving');
                 } catch(e) { console.error(e); }
             };
@@ -662,6 +677,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 const cost = Math.floor((missingGas / v.gasTank) * (v.gasTank * currentStateData.costMod));
                 setGasLevel(v.gasTank);
                 applyEconomyChange(-cost, 0.5, "Pulled over and fueled up!", false);
+            };
+
+            const handleOpenOddJobs = () => {
+                if (status !== 'driving' || isOverheated) return;
+                const shuffled = [...ODD_JOBS_POOL].sort(() => 0.5 - Math.random()).slice(0, 3);
+                setActiveOddJobs(shuffled);
+                syncState({ 'raceState.balance': accountBalance, 'raceState.tripHours': tripHoursFloat, 'raceState.progress': driveProgress });
+                setStatus('odd_jobs');
             };
 
             const prepareStateSummary = () => {
@@ -1031,9 +1054,9 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                             if (randomOutcome.energyBoost) {
                                 setDriverEnergy(100);
                             }
-                            applyEconomyChange(-randomOutcome.sCost, randomOutcome.sTime, randomOutcome.sMsg, false);
+                            applyEconomyChange(Math.abs(randomOutcome.sCost || 0), randomOutcome.sTime, randomOutcome.sMsg, false);
                         } else {
-                            applyEconomyChange(-activeDecision.opt1.sCost, activeDecision.opt1.sTime, activeDecision.opt1.sMsg, false);
+                            applyEconomyChange(Math.abs(activeDecision.opt1.sCost || 0), activeDecision.opt1.sTime, activeDecision.opt1.sMsg, false);
                         }
                     } else {
                         applyEconomyChange(-activeDecision.opt1.fCost, activeDecision.opt1.fTime, activeDecision.opt1.fMsg, true);
@@ -1970,6 +1993,26 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 </div>
                                             )}
 
+                                            {status === 'odd_jobs' && (
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-emerald-900/95 backdrop-blur-md rounded-2xl border-2 border-emerald-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                    <div className="text-4xl sm:text-5xl mb-2 shrink-0">💼</div>
+                                                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Look for Work!</h3>
+                                                    <p className="text-emerald-200 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Trade time and energy for cash.</p>
+                                                    <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
+                                                        {activeOddJobs.map((job, i) => (
+                                                            <button key={i} onClick={() => {
+                                                                setDriverEnergy(prev => Math.max(0, prev - job.energy));
+                                                                applyEconomyChange(job.earn, job.time, `Worked hard: ${job.name}`, false);
+                                                            }} className="w-full bg-emerald-700 border-b-4 border-emerald-900 hover:bg-emerald-600 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
+                                                                <span className="font-black text-white text-sm sm:text-base">{job.icon} {job.name}</span>
+                                                                <span className="text-[10px] font-bold text-emerald-100 mt-1 bg-emerald-900/50 px-2 py-0.5 rounded-full">Earn: ${job.earn} | Time: +{job.time} hrs | Energy: -{job.energy}</span>
+                                                            </button>
+                                                        ))}
+                                                        <button onClick={() => setStatus('driving')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs mt-2 shrink-0">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {status === 'lodging' && (
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-indigo-900/95 backdrop-blur-md rounded-2xl border-2 border-indigo-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🛏️</div>
@@ -2150,29 +2193,33 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                             ENGINE OFF
                                         </div>
                                     ) : status === 'driving' ? (
-                                        <div className="w-full h-full flex gap-2 p-2">
-                                            <div className="w-1/2 flex gap-2 h-full">
+                                        <div className="w-full h-full flex gap-1 p-2">
+                                            <div className="w-[55%] flex gap-1 h-full">
                                                 <button onClick={() => { 
                                                     syncState({ 'raceState.balance': accountBalance, 'raceState.tripHours': tripHoursFloat, 'raceState.progress': driveProgress });
                                                     setStatus('lodging'); 
-                                                }} disabled={isOverheated} className={`w-1/2 h-full pedal-brake rounded-xl border-x-4 border-b-8 border-indigo-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-indigo-900 opacity-50' : 'bg-gradient-to-b from-indigo-700 to-indigo-900'}`}>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-indigo-200 uppercase tracking-widest opacity-70 mb-1">SLEEP</span>
-                                                    <span className="font-black text-base sm:text-lg text-white">MOTEL</span>
+                                                }} disabled={isOverheated} className={`w-1/3 h-full pedal-brake rounded-xl border-x-2 border-b-8 border-indigo-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-indigo-900 opacity-50' : 'bg-gradient-to-b from-indigo-700 to-indigo-900'}`}>
+                                                    <span className="text-[8px] sm:text-[9px] font-black text-indigo-200 uppercase tracking-widest opacity-70 mb-1">SLEEP</span>
+                                                    <span className="font-black text-sm sm:text-base text-white">MOTEL</span>
                                                 </button>
-                                                <button onClick={handleManualRefuel} disabled={isOverheated} className={`w-1/2 h-full pedal-brake rounded-xl border-x-4 border-b-8 border-yellow-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-yellow-900 opacity-50' : 'bg-gradient-to-b from-yellow-600 to-yellow-800'}`}>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-yellow-200 uppercase tracking-widest opacity-70 mb-1">FILL UP</span>
-                                                    <span className="font-black text-base sm:text-lg text-white">GAS</span>
+                                                <button onClick={handleManualRefuel} disabled={isOverheated} className={`w-1/3 h-full pedal-brake rounded-xl border-x-2 border-b-8 border-yellow-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-yellow-900 opacity-50' : 'bg-gradient-to-b from-yellow-600 to-yellow-800'}`}>
+                                                    <span className="text-[8px] sm:text-[9px] font-black text-yellow-200 uppercase tracking-widest opacity-70 mb-1">FILL UP</span>
+                                                    <span className="font-black text-sm sm:text-base text-white">GAS</span>
+                                                </button>
+                                                <button onClick={handleOpenOddJobs} disabled={isOverheated} className={`w-1/3 h-full pedal-brake rounded-xl border-x-2 border-b-8 border-emerald-950 flex flex-col items-center justify-center transition-transform cursor-pointer ${isOverheated ? 'bg-emerald-900 opacity-50' : 'bg-gradient-to-b from-emerald-600 to-emerald-800'}`}>
+                                                    <span className="text-[8px] sm:text-[9px] font-black text-emerald-200 uppercase tracking-widest opacity-70 mb-1">WORK</span>
+                                                    <span className="font-black text-sm sm:text-base text-white">GIGS</span>
                                                 </button>
                                             </div>
-                                            <div className="w-1/2 h-full">
-                                                <button onClick={handleDrive} disabled={isOverheated} className={`w-full h-full pedal-gas rounded-2xl border-x-8 border-b-[12px] border-gray-950 flex flex-col items-center justify-center transition-transform overflow-hidden relative cursor-pointer ${isOverheated ? 'bg-red-900 opacity-50' : 'bg-gradient-to-b from-gray-600 to-gray-800'}`}>
+                                            <div className="w-[45%] h-full">
+                                                <button onClick={handleDrive} disabled={isOverheated} className={`w-full h-full pedal-gas rounded-2xl border-x-4 border-b-[12px] border-gray-950 flex flex-col items-center justify-center transition-transform overflow-hidden relative cursor-pointer ${isOverheated ? 'bg-red-900 opacity-50' : 'bg-gradient-to-b from-gray-600 to-gray-800'}`}>
                                                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, #000 10px, #000 20px)' }}></div>
-                                                    <span className="relative z-10 text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{isOverheated ? 'TOO HOT!' : 'ACCELERATE'}</span>
-                                                    <span className={`relative z-10 font-black text-3xl sm:text-4xl tracking-wider ${isOverheated ? 'text-red-400' : 'text-gray-200'}`}>DRIVE</span>
+                                                    <span className="relative z-10 text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{isOverheated ? 'TOO HOT!' : 'ACCELERATE'}</span>
+                                                    <span className={`relative z-10 font-black text-2xl sm:text-3xl tracking-wider ${isOverheated ? 'text-red-400' : 'text-gray-200'}`}>DRIVE</span>
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : (status === 'decision' || status === 'weather_event' || status === 'random_event' || status === 'poi' || status === 'food_stop' || status === 'illness_event' || status === 'select_passenger' || status === 'jesus_exit' || status === 'lodging' || status === 'ditch_passenger' || status === 'state_summary') ? (
+                                    ) : (status === 'decision' || status === 'weather_event' || status === 'random_event' || status === 'poi' || status === 'food_stop' || status === 'odd_jobs' || status === 'illness_event' || status === 'select_passenger' || status === 'jesus_exit' || status === 'lodging' || status === 'ditch_passenger' || status === 'state_summary') ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                             <div className="text-purple-400 font-black text-base sm:text-lg uppercase tracking-widest animate-pulse text-center">⚠️ EVENT AHEAD ⚠️</div>
                                             <div className="text-gray-500 font-bold text-[10px] sm:text-xs mt-1 text-center">Pedals Locked. Check Screen!</div>
