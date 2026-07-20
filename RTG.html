@@ -92,7 +92,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
-        const GAME_VERSION = "v5.3.0 - The Gig Economy";
+        const GAME_VERSION = "v5.7.0 - UI Strategy Transparency & More Events";
         
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
@@ -136,14 +136,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         };
 
         const ODD_JOBS_POOL = [
-            { name: "Wash Dishes at Diner", earn: 60, time: 2, energy: 15, icon: "🍽️" },
-            { name: "Help a Local Farmer", earn: 120, time: 4, energy: 30, icon: "🚜" },
-            { name: "Day Labor Construction", earn: 200, time: 6, energy: 50, icon: "🔨" },
-            { name: "Fix a Local's Solar Array", earn: 300, time: 5, energy: 40, icon: "☀️" },
-            { name: "Walk Dogs at RV Park", earn: 40, time: 1, energy: 10, icon: "🐕" },
-            { name: "Change Semi-Truck Tires", earn: 250, time: 7, energy: 60, icon: "🛞" },
-            { name: "Scrub the Gas Station Bathroom", earn: 80, time: 2, energy: 35, icon: "🧽" },
-            { name: "Direct Traffic for Road Crew", earn: 150, time: 4, energy: 25, icon: "🛑" }
+            { name: "Wash Dishes at Diner", earn: 150, time: 2, energy: 15, icon: "🍽️" },
+            { name: "Help a Local Farmer", earn: 300, time: 4, energy: 30, icon: "🚜" },
+            { name: "Day Labor Construction", earn: 500, time: 6, energy: 50, icon: "🔨" },
+            { name: "Fix a Local's Solar Array", earn: 800, time: 5, energy: 40, icon: "☀️" },
+            { name: "Walk Dogs at RV Park", earn: 100, time: 1, energy: 10, icon: "🐕" },
+            { name: "Change Semi-Truck Tires", earn: 600, time: 7, energy: 60, icon: "🛞" },
+            { name: "Scrub the Gas Station Bathroom", earn: 200, time: 2, energy: 35, icon: "🧽" },
+            { name: "Direct Traffic for Road Crew", earn: 350, time: 4, energy: 25, icon: "🛑" }
         ];
 
         const WEATHER_EVENTS = [
@@ -155,14 +155,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         ];
 
         const POI_STOPS = [
-            { id: 'poi1', localName: "{NAME}'s Farm Stand", localDesc: "Buy fresh organic snacks.", localCost: 40, localTime: 1, corpName: "BurgerCorp Drive-Thru", corpDesc: "Cheap soda and greasy food.", corpCost: 10, corpTime: 1, corpRisk: 0.2, workName: "Shovel Manure", workDesc: "It smells awful, but it pays.", workEarn: 150, workTime: 4 },
-            { id: 'poi2', localName: "{NAME}'s Antique Shop", localDesc: "Hunt for cool treasures.", localCost: 100, localTime: 2, corpName: "Mega-Mart Store", corpDesc: "Fluorescent lighting and cheap supplies.", corpCost: 20, corpTime: 1, corpRisk: 0.3, workName: "Unload Delivery Truck", workDesc: "Heavy lifting in the heat.", workEarn: 120, workTime: 3 },
-            { id: 'poi3', localName: "{NAME}'s Tire Shop", localDesc: "Get tires checked by friendly mechanics.", localCost: 80, localTime: 2, corpName: "MegaTread Warehouse", corpDesc: "Buy plastic-wrapped tires from a kiosk.", corpCost: 40, corpTime: 1, corpRisk: 0.4, workName: "Change Tires for Cash", workDesc: "Manual labor to save the trip.", workEarn: 200, workTime: 5 },
-            { id: 'poi4', localName: "{NAME}'s Indie Coffee", localDesc: "Sip a masterpiece pour-over.", localCost: 25, localTime: 1, corpName: "CaffeineCorp", corpDesc: "Lukewarm bean water.", corpCost: 5, corpTime: 0.5, corpRisk: 0.15, workName: "Barista Shift", workDesc: "Serve angry commuters.", workEarn: 100, workTime: 3 },
-            { id: 'poi5', localName: "{NAME}'s Roadside Diner", localDesc: "World famous cherry pie.", localCost: 35, localTime: 1, corpName: "SlopShop Kiosk", localDesc: "Microwaved burritos.", corpCost: 8, corpTime: 0.5, corpRisk: 0.35, workName: "Wash Dishes", workDesc: "Scrubbing pots to survive.", workEarn: 140, workTime: 4 },
-            { id: 'poi6', localName: "{NAME}'s Petting Zoo", localDesc: "Feed the weird goats.", localCost: 30, localTime: 2, corpName: "SafariCorp VR", corpDesc: "Look at animals on screens.", corpCost: 15, corpTime: 1, corpRisk: 0.1, workName: "Clean Animal Pens", workDesc: "Humiliating, dirty work.", workEarn: 110, workTime: 3 },
-            { id: 'poi7', localName: "{NAME}'s Mystery Shack", localDesc: "See the two-headed squirrel.", localCost: 20, localTime: 1, corpName: "Souvenir City", corpDesc: "Buy plastic junk.", corpCost: 40, corpTime: 1, corpRisk: 0.2, workName: "Wear Mascot Suit", workDesc: "Dance by the highway.", workEarn: 250, workTime: 6 },
-            { id: 'poi8', localName: "{NAME}'s Desert Oasis", localDesc: "Relax by the spring.", localCost: 120, localTime: 3, corpName: "Sand-Mart", corpDesc: "Buy cheap sunglasses.", corpCost: 15, corpTime: 1, corpRisk: 0.25, workName: "Sweep Sand", workDesc: "Endless, pointless sweeping.", workEarn: 90, workTime: 3 }
+            { id: 'poi1', localName: "{NAME}'s Farm Stand", localDesc: "Buy fresh organic snacks.", localCost: 40, localTime: 1, corpName: "BurgerCorp Drive-Thru", corpDesc: "Cheap soda and greasy food.", corpCost: 10, corpTime: 1, corpRisk: 0.2, workName: "Shovel Manure", workDesc: "It smells awful, but it pays.", workEarn: 350, workTime: 4 },
+            { id: 'poi2', localName: "{NAME}'s Antique Shop", localDesc: "Hunt for cool treasures.", localCost: 100, localTime: 2, corpName: "Mega-Mart Store", corpDesc: "Fluorescent lighting and cheap supplies.", corpCost: 20, corpTime: 1, corpRisk: 0.3, workName: "Unload Delivery Truck", workDesc: "Heavy lifting in the heat.", workEarn: 300, workTime: 3 },
+            { id: 'poi3', localName: "{NAME}'s Tire Shop", localDesc: "Get tires checked by friendly mechanics.", localCost: 80, localTime: 2, corpName: "MegaTread Warehouse", corpDesc: "Buy plastic-wrapped tires from a kiosk.", corpCost: 40, corpTime: 1, corpRisk: 0.4, workName: "Change Tires for Cash", workDesc: "Manual labor to save the trip.", workEarn: 500, workTime: 5 },
+            { id: 'poi4', localName: "{NAME}'s Indie Coffee", localDesc: "Sip a masterpiece pour-over.", localCost: 25, localTime: 1, corpName: "CaffeineCorp", corpDesc: "Lukewarm bean water.", corpCost: 5, corpTime: 0.5, corpRisk: 0.15, workName: "Barista Shift", workDesc: "Serve angry commuters.", workEarn: 250, workTime: 3 },
+            { id: 'poi5', localName: "{NAME}'s Roadside Diner", localDesc: "World famous cherry pie.", localCost: 35, localTime: 1, corpName: "SlopShop Kiosk", localDesc: "Microwaved burritos.", corpCost: 8, corpTime: 0.5, corpRisk: 0.35, workName: "Wash Dishes", workDesc: "Scrubbing pots to survive.", workEarn: 350, workTime: 4 },
+            { id: 'poi6', localName: "{NAME}'s Petting Zoo", localDesc: "Feed the weird goats.", localCost: 30, localTime: 2, corpName: "SafariCorp VR", corpDesc: "Look at animals on screens.", corpCost: 15, corpTime: 1, corpRisk: 0.1, workName: "Clean Animal Pens", workDesc: "Humiliating, dirty work.", workEarn: 250, workTime: 3 },
+            { id: 'poi7', localName: "{NAME}'s Mystery Shack", localDesc: "See the two-headed squirrel.", localCost: 20, localTime: 1, corpName: "Souvenir City", corpDesc: "Buy plastic junk.", corpCost: 40, corpTime: 1, corpRisk: 0.2, workName: "Wear Mascot Suit", workDesc: "Dance by the highway.", workEarn: 600, workTime: 6 },
+            { id: 'poi8', localName: "{NAME}'s Desert Oasis", localDesc: "Relax by the spring.", localCost: 120, localTime: 3, corpName: "Sand-Mart", corpDesc: "Buy cheap sunglasses.", corpCost: 15, corpTime: 1, corpRisk: 0.25, workName: "Sweep Sand", workDesc: "Endless, pointless sweeping.", workEarn: 200, workTime: 3 }
         ];
 
         const FOOD_OPTIONS_POOL = [
@@ -375,11 +375,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             const [usedDecisions, setUsedDecisions] = useState([]);
             const [usedEvents, setUsedEvents] = useState([]);
             const [usedPoiNames, setUsedPoiNames] = useState([]);
+            const [usedWeather, setUsedWeather] = useState([]);
+            
             const [hasFacedDecision, setHasFacedDecision] = useState(false);
             const [activeDecision, setActiveDecision] = useState(null);
             const [decisionResultData, setDecisionResultData] = useState(null);
             
-            const [hasFacedRandomEvent, setHasFacedRandomEvent] = useState(false);
+            const [hasFacedRandomEvent1, setHasFacedRandomEvent1] = useState(false);
+            const [hasFacedRandomEvent2, setHasFacedRandomEvent2] = useState(false);
             const [activeRandomEvent, setActiveRandomEvent] = useState(null);
             
             const [hasFacedWeather, setHasFacedWeather] = useState(false);
@@ -473,12 +476,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         setDriveProgress(me.raceState.progress || 0);
                         setHasFacedDecision(false);
                         setHasFacedWeather(false);
-                        setHasFacedRandomEvent(false);
+                        setHasFacedRandomEvent1(false);
+                        setHasFacedRandomEvent2(false);
                         setHasFacedPoi(false);
                         setHasFacedFood(false);
                         setUsedDecisions([]);
                         setUsedEvents([]);
                         setUsedPoiNames([]);
+                        setUsedWeather([]);
                         setActiveOddJobs([]);
                         setGasLevel(v.gasTank);
                         setAccountBalance(me.raceState.balance || 10000);
@@ -592,6 +597,9 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     setUsedDecisions([]);
                     setUsedEvents([]);
                     setUsedPoiNames([]);
+                    setUsedWeather([]);
+                    setHasFacedRandomEvent1(false);
+                    setHasFacedRandomEvent2(false);
                     setActiveOddJobs([]);
                     setStatus('driving');
                 } catch(e) { console.error(e); }
@@ -655,7 +663,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     setDecisionResultData(null);
                     if (newBalance <= 0) { setStatus('bankrupt'); } 
                     else { setStatus('driving'); }
-                }, 2500);
+                }, 4000); 
             };
 
             const handleSpeedingTicket = () => {
@@ -696,7 +704,16 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     if (nextCheckpoint >= route.states.length) {
                         proceedToNextCheckpoint(0, 0);
                     } else {
-                        const randomWeather = WEATHER_EVENTS[Math.floor(Math.random() * WEATHER_EVENTS.length)];
+                        let availWeather = WEATHER_EVENTS.filter(w => !usedWeather.includes(w.id));
+                        if (availWeather.length === 0) {
+                            availWeather = WEATHER_EVENTS;
+                            setUsedWeather([]); 
+                        }
+                        const randomWeather = availWeather[Math.floor(Math.random() * availWeather.length)];
+                        setUsedWeather(prev => {
+                            if (prev.length >= WEATHER_EVENTS.length - 1) return [randomWeather.id];
+                            return [...prev, randomWeather.id];
+                        });
                         setNextWeatherForecast(randomWeather);
                         setStatus('state_summary');
                     }
@@ -746,7 +763,8 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         setDriveProgress(0);
                         setHasFacedDecision(false);
                         setHasFacedWeather(false);
-                        setHasFacedRandomEvent(false);
+                        setHasFacedRandomEvent1(false);
+                        setHasFacedRandomEvent2(false);
                         setHasFacedPoi(false);
                         setHasFacedFood(false);
                         setIllnessCountdown(null);
@@ -775,6 +793,44 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 } else if (type === 'memory') {
                     startMemoryGame();
                 }
+            };
+
+            const triggerRandomEvent = (stateSetter, currentProg, newBalance, newHours) => {
+                const MESS_EVENTS = ['re1', 're6', 're8', 're12'];
+                let availableEvents = RANDOM_EVENTS.filter(e => !usedEvents.includes(e.id));
+                
+                if (players[user?.uid]?.vehicleId === 'tahoe' || localVehicle === 'tahoe') {
+                    availableEvents = availableEvents.filter(e => !MESS_EVENTS.includes(e.id));
+                }
+                if (activePassengers.length === 0) {
+                    availableEvents = availableEvents.filter(e => !e.requiresPassenger);
+                }
+                if (availableEvents.length === 0) {
+                    availableEvents = RANDOM_EVENTS.filter(e => !e.requiresPassenger); 
+                    setUsedEvents([]); 
+                }
+                
+                const pickedEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+                
+                let targetName = "Someone";
+                if (pickedEvent.requiresPassenger) {
+                    targetName = activePassengers[Math.floor(Math.random() * activePassengers.length)];
+                } else {
+                    const dynamicNamePool = activePassengers.length > 0 ? activePassengers : (databaseNames.length > 1 ? databaseNames : FAMILY_NAMES);
+                    targetName = dynamicNamePool[Math.floor(Math.random() * dynamicNamePool.length)];
+                }
+                
+                const personalizedEvent = {
+                    ...pickedEvent,
+                    text: pickedEvent.text ? pickedEvent.text.replace(/{NAME}/g, targetName) : pickedEvent.text,
+                    targetName: targetName
+                };
+
+                syncState({ 'raceState.balance': newBalance, 'raceState.tripHours': newHours, 'raceState.progress': currentProg });
+                setUsedEvents(prev => [...prev, pickedEvent.id]);
+                setActiveRandomEvent(personalizedEvent);
+                setStatus('random_event');
+                stateSetter(true);
             };
 
             const handleDrive = () => {
@@ -911,8 +967,25 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     return;
                 }
 
+                if (currentProg >= checkPt(0.30) && driveProgress < checkPt(0.30) && !hasFacedRandomEvent1) {
+                    triggerRandomEvent(setHasFacedRandomEvent1, currentProg, newBalance, newHours);
+                    return;
+                }
+
                 if (currentProg >= checkPt(0.45) && driveProgress < checkPt(0.45) && !hasFacedWeather) {
-                    const pickedEvent = nextWeatherForecast || WEATHER_EVENTS[Math.floor(Math.random() * WEATHER_EVENTS.length)];
+                    let pickedEvent;
+                    if (nextWeatherForecast) {
+                        pickedEvent = nextWeatherForecast;
+                        setNextWeatherForecast(null); 
+                    } else {
+                        let availWeather = WEATHER_EVENTS.filter(w => !usedWeather.includes(w.id));
+                        if (availWeather.length === 0) { availWeather = WEATHER_EVENTS; setUsedWeather([]); }
+                        pickedEvent = availWeather[Math.floor(Math.random() * availWeather.length)];
+                        setUsedWeather(prev => {
+                            if (prev.length >= WEATHER_EVENTS.length - 1) return [pickedEvent.id];
+                            return [...prev, pickedEvent.id];
+                        });
+                    }
                     
                     const dynamicNamePool = activePassengers.length > 0 ? activePassengers : (databaseNames.length > 1 ? databaseNames : FAMILY_NAMES);
                     const randomName = dynamicNamePool[Math.floor(Math.random() * dynamicNamePool.length)];
@@ -966,41 +1039,8 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     return;
                 }
 
-                if (currentProg >= checkPt(0.75) && driveProgress < checkPt(0.75) && !hasFacedRandomEvent) {
-                    const MESS_EVENTS = ['re1', 're6', 're8', 're12'];
-                    let availableEvents = RANDOM_EVENTS.filter(e => !usedEvents.includes(e.id));
-                    
-                    if (me.vehicleId === 'tahoe') {
-                        availableEvents = availableEvents.filter(e => !MESS_EVENTS.includes(e.id));
-                    }
-                    if (activePassengers.length === 0) {
-                        availableEvents = availableEvents.filter(e => !e.requiresPassenger);
-                    }
-                    if (availableEvents.length === 0) {
-                        availableEvents = RANDOM_EVENTS.filter(e => !e.requiresPassenger); 
-                    }
-                    
-                    const pickedEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
-                    
-                    let targetName = "Someone";
-                    if (pickedEvent.requiresPassenger) {
-                        targetName = activePassengers[Math.floor(Math.random() * activePassengers.length)];
-                    } else {
-                        const dynamicNamePool = activePassengers.length > 0 ? activePassengers : (databaseNames.length > 1 ? databaseNames : FAMILY_NAMES);
-                        targetName = dynamicNamePool[Math.floor(Math.random() * dynamicNamePool.length)];
-                    }
-                    
-                    const personalizedEvent = {
-                        ...pickedEvent,
-                        text: pickedEvent.text ? pickedEvent.text.replace(/{NAME}/g, targetName) : pickedEvent.text,
-                        targetName: targetName
-                    };
-
-                    syncState({ 'raceState.balance': newBalance, 'raceState.tripHours': newHours, 'raceState.progress': currentProg });
-                    setUsedEvents(prev => [...prev, pickedEvent.id]);
-                    setActiveRandomEvent(personalizedEvent);
-                    setStatus('random_event');
-                    setHasFacedRandomEvent(true);
+                if (currentProg >= checkPt(0.80) && driveProgress < checkPt(0.80) && !hasFacedRandomEvent2) {
+                    triggerRandomEvent(setHasFacedRandomEvent2, currentProg, newBalance, newHours);
                     return;
                 }
 
@@ -1121,8 +1161,14 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         applyEconomyChange(-activePoi.corpCost, activePoi.corpTime, guiltMsg, false);
                     }
                 } else if (choice === 'work') {
-                    setDriverEnergy(prev => Math.max(0, prev - 40));
-                    applyEconomyChange(activePoi.workEarn, activePoi.workTime, "EARNED CASH!", false);
+                    const newEnergy = driverEnergy - 40; 
+                    if (newEnergy <= 0) {
+                        setDriverEnergy(100);
+                        applyEconomyChange((activePoi.workEarn || 200) - 300, (activePoi.workTime || 3) + 8, `Worked hard but PASSED OUT! Forced motel stay (-$300)!`, true);
+                    } else {
+                        setDriverEnergy(newEnergy);
+                        applyEconomyChange(activePoi.workEarn, activePoi.workTime, "EARNED CASH!", false);
+                    }
                 } else {
                     setSkipCount(prev => prev + 1);
                     applyEconomyChange(0, 0, "Kept Driving. (Restlessness increased!)", false);
@@ -1179,7 +1225,11 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             const handleIllnessDecision = async (isRisk) => {
                 if (!isRisk) { 
-                    applyEconomyChange(-50, 2, "DIGGING A HOLE. Humiliating delay.", true);
+                    if (Math.random() < 0.25) {
+                        applyEconomyChange(-150, 4, "SKUNK ATTACK! Forced to rent a motel to wash with tomato juice!", true);
+                    } else {
+                        applyEconomyChange(-50, 2, "DIGGING A HOLE. Safe but humiliating.", false);
+                    }
                 } else { 
                     const success = Math.random() > 0.5;
                     if (success) {
@@ -1721,37 +1771,39 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 </div>
                                             </div>
 
-                                            <div className="bg-black/50 rounded-2xl p-4 sm:p-6 border border-gray-800 relative shadow-inner flex-1 flex flex-col z-10 overflow-y-auto">
+                                            <div className="bg-black/50 rounded-2xl p-4 sm:p-6 border border-gray-800 relative shadow-inner flex-1 flex flex-col justify-center gap-6 z-10 overflow-y-auto">
                                                 
                                                 <div 
                                                     className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity pointer-events-none transition-all duration-1000" 
                                                     style={{ backgroundImage: `url(https://flagcdn.com/w640/us-${activeRoute.states[me.raceState?.checkpoint || 0].toLowerCase()}.png)` }}
                                                 ></div>
 
-                                                <div className="text-xs text-gray-500 font-black uppercase tracking-widest mb-8 flex justify-between relative z-10 shrink-0">
-                                                    <span>GPS Route</span>
-                                                </div>
-                                                
-                                                <div className="relative h-2 bg-gray-800 rounded-full mb-10 mx-2 mt-auto z-10 shrink-0">
-                                                    <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
+                                                <div className="w-full relative z-10">
+                                                    <div className="text-xs text-gray-500 font-black uppercase tracking-widest mb-6 flex justify-between">
+                                                        <span>GPS Route</span>
+                                                    </div>
+                                                    
+                                                    <div className="relative h-2 bg-gray-800 rounded-full mb-8 mx-2">
+                                                        <div className="absolute h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] rounded-full transition-all duration-500" style={{ width: `${((me.raceState?.checkpoint || 0) / (activeRoute.states.length - 1)) * 100}%` }}></div>
 
-                                                    <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-1.5">
-                                                        {activeRoute.states.map((st, i) => {
-                                                            const isPast = i < (me.raceState?.checkpoint || 0);
-                                                            const isCurrent = i === (me.raceState?.checkpoint || 0);
-                                                            return (
-                                                                <div key={i} className="relative flex flex-col items-center">
-                                                                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-[3px] z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
-                                                                    <div className={`absolute top-7 sm:top-8 text-[10px] sm:text-xs font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                        <div className="absolute top-0 left-0 w-full h-full flex justify-between items-center -mt-1.5">
+                                                            {activeRoute.states.map((st, i) => {
+                                                                const isPast = i < (me.raceState?.checkpoint || 0);
+                                                                const isCurrent = i === (me.raceState?.checkpoint || 0);
+                                                                return (
+                                                                    <div key={i} className="relative flex flex-col items-center">
+                                                                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-[3px] z-10 transition-all ${isPast ? 'bg-cyan-500 border-cyan-200' : isCurrent ? 'bg-yellow-400 border-white scale-150 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'bg-gray-900 border-gray-700'}`}></div>
+                                                                        <div className={`absolute top-7 sm:top-8 text-[10px] sm:text-xs font-black ${isCurrent ? 'text-yellow-400' : 'text-gray-600'}`}>{st}</div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 
                                                 {status === 'driving' && (
-                                                    <div className="mt-auto pt-4 sm:pt-6 relative z-10 shrink-0">
-                                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mb-2 flex justify-between px-2">
+                                                    <div className="relative z-10 w-full flex flex-col gap-2">
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center flex justify-between px-2">
                                                             <span>
                                                                 {(() => {
                                                                     const nextIdx = Math.min(activeRoute.states.length - 1, (me.raceState?.checkpoint || 0) + 1);
@@ -1761,10 +1813,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                             </span>
                                                             <span className="text-cyan-400 font-black">{formatFictionalTime(tripHoursFloat)}</span>
                                                         </div>
-                                                        <div className="h-3 sm:h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden mb-3 sm:mb-4 relative">
+                                                        <div className="h-3 sm:h-4 bg-gray-900 rounded-full border border-gray-700 overflow-hidden relative shadow-inner">
                                                             <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-75" style={{ width: `${(driveProgress / (myVehicleDef?.driveTaps || 1)) * 100}%` }}></div>
                                                         </div>
-                                                        <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 text-center shadow-inner backdrop-blur-sm h-auto min-h-max">
+                                                        <div className="bg-gray-900/90 border border-gray-700 rounded-lg p-3 text-center shadow-inner backdrop-blur-sm mt-2">
                                                             <div className="text-cyan-400 font-black text-[10px] sm:text-xs uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
                                                                 <span>💡</span> {STATE_DATA[activeRoute.states[me.raceState?.checkpoint || 0]]?.name} Fact
                                                             </div>
@@ -1781,7 +1833,13 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                     <div className="text-4xl mb-2 shrink-0">📞</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Call a Friend</h3>
                                                     <p className="text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Who do you want to pick up?</p>
-                                                    <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 mt-auto shrink-0 overflow-y-auto max-h-[40vh] pr-1">
+                                                    
+                                                    <div className="bg-black/40 border border-blue-800 rounded-xl p-3 w-full mb-4 text-left">
+                                                        <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-widest mb-1 shrink-0">✅ REWARD: Passengers share driving! Energy drains slower.</p>
+                                                        <p className="text-red-300 text-[10px] font-bold uppercase tracking-widest shrink-0">❌ RISK: You must pay for their food at stops!</p>
+                                                    </div>
+
+                                                    <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 mt-auto shrink-0 overflow-y-auto max-h-[30vh] pr-1">
                                                         {databaseNames.filter(n => !activePassengers.includes(n) && n !== me?.name).concat(FAMILY_NAMES.filter(n => !activePassengers.includes(n) && !databaseNames.includes(n))).map(name => (
                                                             <button key={name} onClick={() => {
                                                                 setActivePassengers(prev => [...prev, name]);
@@ -1810,7 +1868,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                                 setTimeout(() => {
                                                                     setDecisionResultData(null);
                                                                     setStatus(prevStatus);
-                                                                }, 2000);
+                                                                }, 4000);
                                                             }} className="bg-red-700 border-b-4 border-red-900 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-sm">
                                                                 Kick Out {name}
                                                             </button>
@@ -1904,6 +1962,11 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🏪</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">{activePoi.localName}</h3>
                                                     <p className="text-blue-300 text-sm font-bold mb-4">{activePoi.localDesc}</p>
+                                                    
+                                                    <p className="text-blue-100 text-[9px] font-bold uppercase tracking-widest mb-4 shrink-0 bg-blue-950/60 p-2 rounded border border-blue-700 leading-relaxed">
+                                                        💡 <b>STRATEGY:</b> Local stops cost more upfront but have a 20% chance of a hidden reward or cash windfall. Corporate stops are cheaper but carry a {activePoi.corpRisk * 100}% chance of scamming you!
+                                                    </p>
+                                                    
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
                                                         <button onClick={() => handlePoiDecision('local')} className="w-full bg-green-600 border-b-4 border-green-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                             <span className="font-black text-white text-sm sm:text-base">Stop Here</span>
@@ -1917,7 +1980,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                         <button onClick={() => handlePoiDecision('work')} className="w-full bg-yellow-600 border-b-4 border-yellow-800 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                             <span className="font-black text-white text-sm sm:text-base">Work: {activePoi.workName}</span>
                                                             <span className="text-xs text-yellow-200 mt-1">{activePoi.workDesc}</span>
-                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">Earn: ${activePoi.workEarn} | Time: +{activePoi.workTime} hrs</span>
+                                                            <span className="text-[10px] font-bold text-yellow-100 mt-1 bg-yellow-800/50 px-2 py-0.5 rounded-full">Earn: ${activePoi.workEarn} | Time: +{activePoi.workTime} hrs | Energy: -40</span>
+                                                            {driverEnergy <= 40 && (
+                                                                <span className="text-[9px] font-black text-red-300 mt-1 bg-red-900/80 px-2 py-0.5 rounded-full animate-pulse">WARNING: WILL PASS OUT</span>
+                                                            )}
                                                         </button>
                                                         <button onClick={() => handlePoiDecision('skip')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg flex flex-col items-center mt-2">
                                                             <span className="font-black text-white text-xs">Keep Driving (Skip)</span>
@@ -1939,13 +2005,16 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                         <button onClick={() => handleDecision(true)} className="w-full bg-purple-700 border-b-4 border-purple-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg flex flex-col items-center text-sm">
                                                             <span>{activeDecision.riskText}</span>
                                                             {(activeDecision.opt1.sCost !== undefined || activeDecision.opt1.successPool) && (
-                                                                <span className="text-[10px] text-purple-200 mt-1 font-bold">Failure Risk: ${activeDecision.opt1.fCost} | Time: +{activeDecision.opt1.fTime} hrs</span>
+                                                                <span className="text-[9px] text-purple-200 mt-1 font-bold leading-tight">
+                                                                    ⭐ {activeDecision.opt1.successChance * 100}% Success Chance<br/>
+                                                                    ⚠️ Failure Penalty: ${activeDecision.opt1.fCost} & +{activeDecision.opt1.fTime} hrs
+                                                                </span>
                                                             )}
                                                         </button>
                                                         <button onClick={() => handleDecision(false)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg flex flex-col items-center text-sm">
                                                             <span>{activeDecision.safeText}</span>
                                                             {activeDecision.opt2.cost !== undefined && (
-                                                                <span className="text-[10px] text-gray-300 mt-1 font-bold">Cost: ${activeDecision.opt2.cost} | Time: +{activeDecision.opt2.time} hrs</span>
+                                                                <span className="text-[10px] text-gray-300 mt-1 font-bold">Guaranteed Cost: ${activeDecision.opt2.cost} | Time: +{activeDecision.opt2.time} hrs</span>
                                                             )}
                                                         </button>
                                                     </div>
@@ -1956,14 +2025,20 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-orange-900/95 backdrop-blur-md rounded-2xl border-2 border-orange-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🍔</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-1 leading-tight">Food Stop!</h3>
-                                                    <p className="text-orange-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Feeding {activePassengers.length + 1} People</p>
+                                                    <p className="text-orange-300 text-[10px] font-bold uppercase tracking-widest mb-2 shrink-0">Feeding {activePassengers.length + 1} People</p>
                                                     
+                                                    <p className="text-orange-100 text-[9px] font-bold uppercase tracking-widest mb-4 shrink-0 bg-orange-950/60 p-2 rounded border border-orange-700 leading-relaxed">
+                                                        💡 <b>STRATEGY:</b> 20% Chance any stop comps your meal! Beware: Cheap food carries high Food Poisoning risks!
+                                                    </p>
+
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
                                                         {activeFoodOptions.map((opt, i) => (
                                                             <button key={i} onClick={() => handleFoodDecision(opt)} className={`w-full border-b-4 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center ${opt.risk > 0.2 ? 'bg-red-600 border-red-800' : opt.risk > 0.05 ? 'bg-yellow-600 border-yellow-800' : 'bg-green-600 border-green-800'}`}>
                                                                 <span className="font-black text-white text-sm sm:text-base">{opt.icon} {opt.name}</span>
-                                                                <span className="text-xs text-white/90 mt-1">{opt.desc}</span>
-                                                                <span className="text-[10px] font-bold text-white/90 mt-1 bg-black/30 px-2 py-0.5 rounded-full">Cost: ${opt.costPerPerson * (1 + activePassengers.length)} (${opt.costPerPerson}/ea) | Time: +{opt.time} hrs</span>
+                                                                <span className="text-[10px] font-bold text-white/90 mt-1 text-center leading-tight">
+                                                                    Total Cost: ${opt.costPerPerson * (1 + activePassengers.length)} | Energy: +{opt.energy}<br/>
+                                                                    {opt.risk > 0 ? `⚠️ ${Math.round(opt.risk * 100)}% Risk of Food Poisoning` : '⭐ 100% Safe'}
+                                                                </span>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1983,11 +2058,11 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                     <div className="w-full flex flex-col gap-2 mt-auto shrink-0">
                                                         <button onClick={() => handleIllnessDecision(false)} className="w-full bg-orange-700 border-b-4 border-orange-900 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base flex flex-col items-center">
                                                             <span>Dig a Hole on the Side of the Road</span>
-                                                            <span className="text-[10px] font-bold text-orange-200 mt-1">Safe but humiliating. Cost: $50 | Time: +2 hrs</span>
+                                                            <span className="text-[10px] font-bold text-orange-200 mt-1 text-center">Base Cost: $50 & +2 Hrs<br/>⚠️ 25% Risk of Skunk Attack (-$150)</span>
                                                         </button>
                                                         <button onClick={() => handleIllnessDecision(true)} className="w-full bg-gray-600 border-b-4 border-gray-800 active:translate-y-1 active:border-b-0 rounded-xl font-black text-white p-3 shadow-lg text-sm sm:text-base flex flex-col items-center">
                                                             <span>Risk the Porta-Potty</span>
-                                                            <span className="text-[10px] font-bold text-gray-300 mt-1">50% chance of disaster (Cost: $200 | Time: +3 hrs)</span>
+                                                            <span className="text-[10px] font-bold text-gray-300 mt-1 text-center">50% Chance of Safe Relief ($0)<br/>⚠️ 50% Chance of Disaster (-$200)</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -2001,11 +2076,20 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
                                                         {activeOddJobs.map((job, i) => (
                                                             <button key={i} onClick={() => {
-                                                                setDriverEnergy(prev => Math.max(0, prev - job.energy));
-                                                                applyEconomyChange(job.earn, job.time, `Worked hard: ${job.name}`, false);
+                                                                const newEnergy = driverEnergy - job.energy;
+                                                                if (newEnergy <= 0) {
+                                                                    setDriverEnergy(100);
+                                                                    applyEconomyChange(job.earn - 300, job.time + 8, `Worked ${job.name} but PASSED OUT! Forced motel stay (-$300)!`, true);
+                                                                } else {
+                                                                    setDriverEnergy(newEnergy);
+                                                                    applyEconomyChange(job.earn, job.time, `Worked hard: ${job.name}`, false);
+                                                                }
                                                             }} className="w-full bg-emerald-700 border-b-4 border-emerald-900 hover:bg-emerald-600 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                                 <span className="font-black text-white text-sm sm:text-base">{job.icon} {job.name}</span>
                                                                 <span className="text-[10px] font-bold text-emerald-100 mt-1 bg-emerald-900/50 px-2 py-0.5 rounded-full">Earn: ${job.earn} | Time: +{job.time} hrs | Energy: -{job.energy}</span>
+                                                                {driverEnergy <= job.energy && (
+                                                                    <span className="text-[9px] font-black text-red-300 mt-1 bg-red-900/80 px-2 py-0.5 rounded-full animate-pulse">WARNING: WILL PASS OUT</span>
+                                                                )}
                                                             </button>
                                                         ))}
                                                         <button onClick={() => setStatus('driving')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs mt-2 shrink-0">Cancel</button>
@@ -2017,11 +2101,19 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-indigo-900/95 backdrop-blur-md rounded-2xl border-2 border-indigo-500 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
                                                     <div className="text-4xl sm:text-5xl mb-2 shrink-0">🛏️</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-4 leading-tight">Time to Rest!</h3>
+                                                    
+                                                    <p className="text-indigo-100 text-[9px] font-bold uppercase tracking-widest mb-4 shrink-0 bg-indigo-950/60 p-2 rounded border border-indigo-700 leading-relaxed">
+                                                        💡 <b>STRATEGY:</b> Cheap motels save cash but have a high risk of theft or poor sleep. Luxury is safe but drains the budget!
+                                                    </p>
+
                                                     <div className="w-full flex flex-col gap-3 mt-auto shrink-0">
                                                         {lodgingOptions.map((opt, i) => (
                                                             <button key={i} onClick={() => handleLodgingDecision(opt)} className="w-full bg-indigo-700 border-b-4 border-indigo-900 hover:bg-indigo-600 active:translate-y-1 active:border-b-0 rounded-xl p-3 shadow-lg flex flex-col items-center">
                                                                 <span className="font-black text-white text-sm">{opt.name}</span>
-                                                                <span className="text-[10px] font-bold text-indigo-200 mt-1 bg-indigo-900/50 px-2 py-0.5 rounded-full">Cost: ${opt.cost} | Time: +{opt.time} hrs</span>
+                                                                <span className="text-[10px] font-bold text-indigo-200 mt-1 text-center leading-tight">
+                                                                    Cost: ${opt.cost} | Restores: +{opt.energy} Energy<br/>
+                                                                    {opt.failRisk > 0 ? `⚠️ ${opt.failRisk * 100}% Risk of Penalty (-$${opt.failCost})` : '⭐ 100% Safe'}
+                                                                </span>
                                                             </button>
                                                         ))}
                                                     </div>
