@@ -92,7 +92,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
-        const GAME_VERSION = "v4.9.1 - Complete Rules & Timers";
+        const GAME_VERSION = "v5.1.0 - The Great Economy Patch";
         
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
@@ -363,6 +363,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             
             const [usedDecisions, setUsedDecisions] = useState([]);
             const [usedEvents, setUsedEvents] = useState([]);
+            const [usedPoiNames, setUsedPoiNames] = useState([]);
             const [hasFacedDecision, setHasFacedDecision] = useState(false);
             const [activeDecision, setActiveDecision] = useState(null);
             const [decisionResultData, setDecisionResultData] = useState(null);
@@ -465,6 +466,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         setHasFacedFood(false);
                         setUsedDecisions([]);
                         setUsedEvents([]);
+                        setUsedPoiNames([]);
                         setGasLevel(v.gasTank);
                         setAccountBalance(me.raceState.balance || 10000);
                         setTripHoursFloat(me.raceState.tripHours || 8);
@@ -573,6 +575,9 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     setDriveProgress(0);
                     setSkipCount(0);
                     setHasSupplies(false);
+                    setUsedDecisions([]);
+                    setUsedEvents([]);
+                    setUsedPoiNames([]);
                     setStatus('driving');
                 } catch(e) { console.error(e); }
             };
@@ -618,7 +623,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 });
 
                 let subMsg = "";
-                if (moneyDelta !== 0) subMsg += `Cost: $${Math.abs(moneyDelta)} `;
+                if (moneyDelta !== 0) {
+                    if (moneyDelta > 0) subMsg += `Earned: $${Math.abs(moneyDelta)} `;
+                    else subMsg += `Cost: $${Math.abs(moneyDelta)} `;
+                }
                 if (hourDelta !== 0) subMsg += `| Time: +${hourDelta} hrs`;
 
                 setDecisionResultData({ 
@@ -788,7 +796,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 if (newEnergy <= 0) {
                     setDriverEnergy(100);
                     syncState({ 'raceState.balance': accountBalance, 'raceState.tripHours': tripHoursFloat, 'raceState.progress': driveProgress });
-                    applyEconomyChange(-150, 8, "EXHAUSTED! Forced Motel Stop.", true);
+                    applyEconomyChange(-300, 8, "EXHAUSTED! Forced stay cost DOUBLE! (Pro-tip: Sleep manually next time!)", true);
                     return;
                 }
 
@@ -842,7 +850,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     syncState({ 'raceState.balance': newBalance, 'raceState.tripHours': newHours, 'raceState.progress': driveProgress });
                     const fillupCost = Math.floor(v.gasTank * currentStateData.costMod);
                     setGasLevel(v.gasTank);
-                    applyEconomyChange(-fillupCost - 100, 3, "OUT OF GAS! Paid for emergency rescue.", true); 
+                    applyEconomyChange(-(fillupCost * 2), 3, "OUT OF GAS! Tow truck charged DOUBLE! (Refuel manually!)", true); 
                     return; 
                 }
 
@@ -906,8 +914,15 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
                 if (currentProg >= checkPt(0.65) && driveProgress < checkPt(0.65) && !hasFacedPoi) {
                     const pickedPoi = POI_STOPS[Math.floor(Math.random() * POI_STOPS.length)];
-                    const dynamicNamePool = activePassengers.length > 0 ? activePassengers : (databaseNames.length > 1 ? databaseNames : FAMILY_NAMES);
-                    const randomName = dynamicNamePool[Math.floor(Math.random() * dynamicNamePool.length)];
+                    
+                    let fullPool = Array.from(new Set([...FAMILY_NAMES, ...databaseNames]));
+                    let availableNames = fullPool.filter(n => !usedPoiNames.includes(n));
+                    if (availableNames.length === 0) {
+                        availableNames = fullPool;
+                        setUsedPoiNames([]);
+                    }
+                    const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
+                    setUsedPoiNames(prev => [...prev, randomName]);
 
                     syncState({ 'raceState.balance': newBalance, 'raceState.tripHours': newHours, 'raceState.progress': currentProg });
                     
@@ -1044,10 +1059,25 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 if (status !== 'poi') return;
                 
                 if (choice === 'local') {
-                    applyEconomyChange(-activePoi.localCost, activePoi.localTime, "Supported Local!", false);
+                    let cost = activePoi.localCost;
+                    let time = activePoi.localTime;
+                    let msg = "Supported Local!";
+                    
+                    if (Math.random() < 0.20) {
+                        const names = activePassengers.length > 0 ? activePassengers : databaseNames.length > 0 ? databaseNames : FAMILY_NAMES;
+                        const luckyName = names[Math.floor(Math.random() * names.length)];
+                        cost = -150; 
+                        msg = `LUCKY! ${luckyName} found a lost wallet with a cash reward!`;
+                    } else if (Math.random() < 0.15) {
+                        cost = 0;
+                        msg = "The shop owner was so nice they gave you free souvenirs!";
+                    }
+                    applyEconomyChange(-cost, time, msg, false);
                 } else if (choice === 'corp') {
                     if (Math.random() < activePoi.corpRisk) {
                         applyEconomyChange(-150, 3, "SCAMMED AT MEGA-CORP!", true);
+                    } else if (Math.random() > 0.85) {
+                        applyEconomyChange(100, activePoi.corpTime, "100th Customer! Won a $100 Mega-Corp Gift Card!", false);
                     } else {
                         const guiltMsgs = [
                             "Saved cash, but crushed a local dream.", 
@@ -1071,7 +1101,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             const handleFoodDecision = async (opt) => {
                 if (status !== 'food_stop') return;
                 const people = 1 + activePassengers.length;
-                const cost = opt.costPerPerson * people;
+                let cost = opt.costPerPerson * people;
+                let time = opt.time;
+                let msg = "PAID THE BILL!";
+                let isFail = false;
                 
                 setDriverEnergy(prev => Math.min(100, prev + opt.energy));
                 
@@ -1079,7 +1112,38 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     setIllnessCountdown(Math.floor(Math.random() * 10) + 10); 
                 }
 
-                applyEconomyChange(-cost, opt.time, "PAID THE BILL!", false);
+                if (Math.random() < 0.20) { 
+                    const names = activePassengers.length > 0 ? activePassengers : databaseNames.length > 0 ? databaseNames : FAMILY_NAMES;
+                    const luckyName = names[Math.floor(Math.random() * names.length)];
+                    
+                    if (opt.id === 'fancy') {
+                        cost = 0;
+                        msg = `${luckyName} told the manager a hilarious joke! Meal was completely comped!`;
+                    } else if (opt.id === 'diner') {
+                        cost = Math.floor(cost / 2);
+                        msg = `The waitress thought ${luckyName} was charming! Half-price bill and free pie!`;
+                    } else if (opt.id === 'buffet') {
+                        cost = 0;
+                        msg = `The cashier recognized ${luckyName} from high school! You all ate for free!`;
+                    } else if (opt.id === 'fastfood') {
+                        cost = -50; 
+                        msg = `Lucky! ${luckyName} found a $50 bill on the floor near the soda fountain!`;
+                    } else if (opt.id === 'foodtruck') {
+                        cost = 0;
+                        msg = "The truck owner needed to close up and gave you all the leftovers for free!";
+                    } else if (opt.id === 'gasstation') {
+                        cost = 0;
+                        msg = `The cashier felt bad for ${luckyName} eating gas station food and didn't charge you.`;
+                    } else if (opt.id === 'vending') {
+                        cost = -20;
+                        msg = "The vending machine was broken and spit out a handful of quarters! +$20";
+                    } else if (opt.id === 'bbq') {
+                        cost = 0;
+                        msg = `You helped the pitmaster fix his smoker! Free BBQ for everyone!`;
+                    }
+                }
+
+                applyEconomyChange(-cost, time, msg, isFail);
             };
 
             const handleIllnessDecision = async (isRisk) => {
@@ -1682,21 +1746,21 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                             </div>
 
                                             {status === 'select_passenger' && (
-                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm max-h-[85vh] bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-400 shadow-2xl p-6 flex flex-col items-center justify-start overflow-y-auto text-center z-50">
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-11/12 max-w-sm bg-blue-900/95 backdrop-blur-md rounded-2xl border-2 border-blue-400 shadow-2xl p-6 flex flex-col items-center justify-start z-50">
                                                     <div className="text-4xl mb-2 shrink-0">📞</div>
                                                     <h3 className="text-base sm:text-lg font-bold text-white mb-2 leading-tight">Call a Friend</h3>
                                                     <p className="text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-4 shrink-0">Who do you want to pick up?</p>
-                                                    <div className="w-full grid grid-cols-2 gap-2 mt-auto shrink-0">
-                                                        {databaseNames.filter(n => !activePassengers.includes(n) && n !== me?.name).concat(FAMILY_NAMES.filter(n => !activePassengers.includes(n) && !databaseNames.includes(n))).slice(0, 8).map(name => (
+                                                    <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 mt-auto shrink-0 overflow-y-auto max-h-[40vh] pr-1">
+                                                        {databaseNames.filter(n => !activePassengers.includes(n) && n !== me?.name).concat(FAMILY_NAMES.filter(n => !activePassengers.includes(n) && !databaseNames.includes(n))).map(name => (
                                                             <button key={name} onClick={() => {
                                                                 setActivePassengers(prev => [...prev, name]);
                                                                 applyEconomyChange(-50, 1, `Picked up ${name}!`, false);
-                                                            }} className="bg-blue-700 border-b-4 border-blue-900 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-sm">
+                                                            }} className="bg-blue-700 border-b-4 border-blue-900 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs sm:text-sm truncate">
                                                                 {name}
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    <button onClick={() => setStatus('driving')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs mt-4">Cancel</button>
+                                                    <button onClick={() => setStatus('driving')} className="w-full bg-red-900/80 border-b-4 border-red-950 active:translate-y-1 active:border-b-0 rounded-xl p-2 shadow-lg font-black text-white text-xs mt-4 shrink-0">Cancel</button>
                                                 </div>
                                             )}
 
