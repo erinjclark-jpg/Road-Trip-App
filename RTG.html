@@ -105,12 +105,12 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             <div class="scrolling-environment biome-midwest" id="rtg2-environment">
                 <div id="time-overlay"></div>
                 <div id="rtg2-scenery-container" class="absolute w-full h-full top-0 left-0 overflow-hidden pointer-events-none"></div>
-                <div class="rtg2-road">
+                <div class="road">
                     <div id="rtg2-road-markings-container" class="absolute w-full h-full top-0 left-0 overflow-hidden pointer-events-none" style="z-index: 1;"></div>
-                    <div class="rtg2-lane-lines" id="rtg2-lane-lines"></div>
-                    <div id="rtg2-entities-container" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 10;"></div>
+                    <div class="lane-lines" id="rtg2-lane-lines"></div>
+                    <div id="rtg2-entities-container" class="absolute w-full h-full top-0 left-0 pointer-events-none" style="z-index: 10;"></div>
                     
-                    <div id="player-car" class="rtg2-car player-car absolute">
+                    <div id="player-car" class="car player-car absolute">
                         <div id="witch-attachment" class="absolute -top-12 left-1/2 transform -translate-x-1/2 text-5xl hidden z-50 animate-bounce">🧙‍♀️</div>
                         <div id="car-smoke" class="absolute -top-8 left-1/2 transform -translate-x-1/2 text-5xl hidden z-40 opacity-80 animate-pulse">💨</div>
                         <div class="headlights" id="headlights"></div>
@@ -1407,7 +1407,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 crashReason.innerText = reason;
                 let statsHtml = `<h3 class="text-xl font-bold text-yellow-400 mb-2 border-b border-gray-600 pb-1">Trip Stats</h3><div class="grid grid-cols-2 gap-2 text-white">`;
                 statsHtml += `<div>💰 Total Coins: <span class="text-yellow-300 font-bold">${state.coins}</span></div><div>🕳️ Potholes: <span class="text-gray-300">${state.hitTally.potholes}</span></div><div>🚓 Pulled Over: <span class="text-blue-300">${state.hitTally.police}</span></div><div>🚗 Cars Hit: <span class="text-red-300">${state.hitTally.cars}</span></div><div class="col-span-2 mt-2 font-bold text-purple-300 border-t border-gray-600 pt-1">Animals Hit:</div><div>🐄 Cows: ${state.hitTally.cows}</div><div>🦌 Deer: ${state.hitTally.deer}</div><div>🐔 Chickens: ${state.hitTally.chickens}</div><div>🐖 Pigs: ${state.hitTally.pigs}</div><div>🦨 Skunks: ${state.hitTally.skunks}</div></div>`;
-                endStats.innerHTML = statsHtml; endStats.classList.remove('hidden'); crashScreen.classList.remove('hidden');
+                endStats.innerHTML = statsHtml; endStats.classList.hidden = false; crashScreen.classList.remove('hidden');
             }
 
             window.rtg2_resetGame = function() {
@@ -1555,7 +1555,8 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             function startRancherLevel() {
                 animalsR = []; obstaclesR = []; floatingTextsR = []; draggedAnimalR = null;
-                targetScoreR = 3 + Math.floor(rancherLevel * 1.5); savedCountR = 0; timeRemainingR = 20 + (rancherLevel * 5);
+                targetScoreR = 3 + Math.floor(rancherLevel * 1.5); savedCountR = 0; 
+                timeRemainingR = Math.max(12, 24 - (rancherLevel * 1.5)); // Tighter timer as levels get higher!
                 for (let i = 0; i < targetScoreR; i++) {
                     let typeIndex; if (rancherLevel < 3) typeIndex = Math.random() > 0.5 ? 0 : 1; else if (rancherLevel < 6) typeIndex = Math.floor(Math.random() * 3); else typeIndex = Math.floor(Math.random() * 4);
                     const type = animalTypesR[typeIndex]; let spawnX, spawnY;
