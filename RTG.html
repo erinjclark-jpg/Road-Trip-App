@@ -450,7 +450,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             const [runTimes, setRunTimes] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
             
-            const [activeTab, setActiveTab] = useState('home'); 
+            const [activeTab, useState('home')] = useState('home'); 
             
             const [joinName, setJoinName] = useState('');
             const [isJoining, setIsJoining] = useState(false);
@@ -1556,7 +1556,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             function startRancherLevel() {
                 animalsR = []; obstaclesR = []; floatingTextsR = []; draggedAnimalR = null;
                 targetScoreR = 3 + Math.floor(rancherLevel * 1.5); savedCountR = 0; 
-                timeRemainingR = Math.max(12, 24 - (rancherLevel * 1.5)); // Tighter timer as levels get higher!
+                timeRemainingR = 15 + ((rancherLevel - 1) * 4); // Adjusted: 15s base, +4s per subsequent level
                 for (let i = 0; i < targetScoreR; i++) {
                     let typeIndex; if (rancherLevel < 3) typeIndex = Math.random() > 0.5 ? 0 : 1; else if (rancherLevel < 6) typeIndex = Math.floor(Math.random() * 3); else typeIndex = Math.floor(Math.random() * 4);
                     const type = animalTypesR[typeIndex]; let spawnX, spawnY;
