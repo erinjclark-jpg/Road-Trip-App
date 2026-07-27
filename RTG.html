@@ -94,6 +94,50 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         #rtg3-root .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; backdrop-filter: blur(4px); }
         #rtg3-root .rtg3-btn { background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%); border: 4px solid #b45309; box-shadow: 0 6px 0 #92400e, 0 10px 10px rgba(0,0,0,0.3); transition: all 0.1s ease-in-out; }
         #rtg3-root .rtg3-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #92400e, 0 4px 4px rgba(0,0,0,0.3); }
+
+        /* RTG4 Styles */
+        .poker-card {
+            width: 100%;
+            aspect-ratio: 2.5/3.5;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #ccc;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        @media (min-width: 640px) { .poker-card { padding: 8px; } }
+        .poker-card.held {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 10px rgba(0,0,0,0.4);
+            border-color: #f59e0b;
+            border-width: 3px;
+        }
+        .poker-card.back {
+            background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 10px, #1e40af 10px, #1e40af 20px);
+            border-color: #fff;
+            border-width: 4px;
+        }
+        .poker-held-tag {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f59e0b;
+            color: black;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            display: none;
+        }
+        .poker-card.held .poker-held-tag { display: block; }
     </style>
 </head>
 <body class="text-white h-[100dvh] w-full overflow-hidden relative">
@@ -321,6 +365,67 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         </div>
     </div>
 
+    <!-- RTG4: Video Poker Container (STATIC DOM) -->
+    <div id="rtg4-root" class="absolute inset-0 z-10 hidden flex-col pb-[64px] pointer-events-auto rtg-font select-none" style="background-color: #064e3b; touch-action: none;">
+        <div class="flex-1 max-w-3xl mx-auto w-full flex flex-col bg-green-800 border-x-4 border-yellow-700 shadow-2xl relative">
+            
+            <!-- Payout Table (9/6 Full Pay) -->
+            <div class="bg-blue-950 border-b-4 border-yellow-600 p-2 sm:p-4 text-yellow-300 font-mono text-[10px] sm:text-sm tracking-tighter sm:tracking-normal overflow-hidden shrink-0">
+               <div class="flex justify-between items-center mb-2">
+                   <span class="text-white font-bold text-xs sm:text-base">JACKS OR BETTER</span>
+                   <span class="text-cyan-400 font-bold text-xs">PAYS ON PAIR OF JACKS OR HIGHER</span>
+                   <button id="rtg4-btn-mute" class="bg-gray-800 text-gray-400 px-2 py-1 rounded text-xs ml-2 border border-gray-600" onclick="window.GameAudio.toggleMute('rtg4'); this.innerText = window.GameAudio.isMuted.rtg4 ? '🔇' : '🔊';">🔊</button>
+               </div>
+               <table class="w-full text-right border-collapse">
+                   <thead class="text-blue-300 border-b border-blue-800">
+                       <tr>
+                           <th class="text-left py-1">HAND</th>
+                           <th class="w-[12%] text-center py-1" id="rtg4-col-1">1</th>
+                           <th class="w-[12%] text-center py-1" id="rtg4-col-2">2</th>
+                           <th class="w-[12%] text-center py-1" id="rtg4-col-3">3</th>
+                           <th class="w-[12%] text-center py-1" id="rtg4-col-4">4</th>
+                           <th class="w-[15%] text-center py-1 font-bold text-white" id="rtg4-col-5">5</th>
+                       </tr>
+                   </thead>
+                   <tbody id="rtg4-paytable-body">
+                       <!-- Populated by JS -->
+                   </tbody>
+               </table>
+            </div>
+            
+            <!-- Game Area -->
+            <div class="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
+                <div id="rtg4-win-message" class="text-xl sm:text-3xl font-black text-yellow-400 h-8 sm:h-12 mb-2 sm:mb-4 animate-pulse drop-shadow-md text-center"></div>
+                
+                <div class="flex gap-1 sm:gap-3 w-full justify-center max-w-2xl px-2">
+                    <div id="rtg4-card-0" class="poker-card back" onclick="window.rtg4_toggleHold(0)"></div>
+                    <div id="rtg4-card-1" class="poker-card back" onclick="window.rtg4_toggleHold(1)"></div>
+                    <div id="rtg4-card-2" class="poker-card back" onclick="window.rtg4_toggleHold(2)"></div>
+                    <div id="rtg4-card-3" class="poker-card back" onclick="window.rtg4_toggleHold(3)"></div>
+                    <div id="rtg4-card-4" class="poker-card back" onclick="window.rtg4_toggleHold(4)"></div>
+                </div>
+                
+                <div class="mt-6 sm:mt-8 flex gap-4 w-full justify-center">
+                    <div class="bg-black/60 px-4 py-2 rounded-xl border-2 border-gray-600 text-white font-mono text-center flex-1 max-w-[120px]">
+                        <div class="text-[10px] text-gray-400">CREDITS</div>
+                        <div id="rtg4-credits" class="text-xl sm:text-2xl font-bold">100</div>
+                    </div>
+                    <div class="bg-black/60 px-4 py-2 rounded-xl border-2 border-gray-600 text-white font-mono text-center flex-1 max-w-[120px]">
+                        <div class="text-[10px] text-gray-400">BET</div>
+                        <div id="rtg4-bet" class="text-xl sm:text-2xl font-bold text-yellow-400">5</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="bg-green-950 p-3 sm:p-4 border-t-4 border-yellow-700 flex justify-between gap-2 sm:gap-4 shrink-0">
+                <button id="rtg4-btn-bet-one" onclick="window.rtg4_betOne()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 sm:py-4 rounded-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 text-xs sm:text-base">BET ONE</button>
+                <button id="rtg4-btn-bet-max" onclick="window.rtg4_betMax()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 sm:py-4 rounded-xl border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 text-xs sm:text-base">BET MAX</button>
+                <button id="rtg4-btn-deal" onclick="window.rtg4_deal()" class="flex-[2] bg-yellow-500 hover:bg-yellow-400 text-black font-black py-3 sm:py-4 rounded-xl border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 text-xl sm:text-2xl tracking-widest">DEAL</button>
+            </div>
+        </div>
+    </div>
+
     <!-- React App Root -->
     <div id="root" class="absolute inset-0 z-20 pointer-events-none"></div>
 
@@ -340,7 +445,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
         const { useState, useEffect, useMemo, useRef } = React;
 
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'road-trip-games';
-        const GAME_VERSION = "v8.1.0 - Layout & UI Fixes";
+        const GAME_VERSION = "v8.4.1 - Audio Updates";
         
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDN6au1-ZjZ4THdWMdp7_LUaEuR07Ms-0c",
@@ -515,13 +620,50 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         rtg3.classList.add('hidden'); rtg3.classList.remove('flex');
                     }
                 }
+
+                const rtg4 = document.getElementById('rtg4-root');
+                if (rtg4) {
+                    if (activeTab === 'videopoker') {
+                        rtg4.classList.remove('hidden'); rtg4.classList.add('flex');
+                    } else {
+                        rtg4.classList.add('hidden'); rtg4.classList.remove('flex');
+                    }
+                }
             }, [activeTab]);
+
+            // Expose a function for Vanilla JS Video Poker to update high scores
+            useEffect(() => {
+                window.rtg4_updateScore = async (newScore) => {
+                    if (!user || !appDb) return;
+                    const myPlayer = players[user.uid];
+                    if (!myPlayer) return;
+                    const currentHigh = myPlayer.pokerHighScore || 0;
+                    if (newScore > currentHigh) {
+                        try {
+                            await updateDoc(doc(appDb, 'artifacts', APP_ID, 'public', 'data', 'players', user.uid), {
+                                pokerHighScore: newScore
+                            });
+                        } catch (err) {}
+                    }
+                };
+                return () => { delete window.rtg4_updateScore; };
+            }, [user, appDb, players]);
             
-            // Custom Tab Switcher that kills any running games seamlessly
+            // Custom Tab Switcher that pauses games in the background
             const handleTabSwitch = (tab) => {
-                if (window.rtg2_quitGame) window.rtg2_quitGame();
-                if (window.rtg3_quitGame) window.rtg3_quitGame();
+                // Pause active loops and external audio
+                if (activeTab === 'roadtrip' && window.rtg2_pauseGame) window.rtg2_pauseGame();
+                if (activeTab === 'rancher' && window.rtg3_pauseGame) window.rtg3_pauseGame();
+                if (window.GameAudio) window.GameAudio.pauseAll();
+
                 setActiveTab(tab);
+
+                // Resume logic for the newly selected tab
+                setTimeout(() => {
+                    if (tab === 'roadtrip' && window.rtg2_resumeGameFromTab) window.rtg2_resumeGameFromTab();
+                    if (tab === 'rancher' && window.rtg3_resumeGameFromTab) window.rtg3_resumeGameFromTab();
+                    if (tab === 'videopoker' && window.rtg4_resumeMusic) window.rtg4_resumeMusic();
+                }, 50);
             };
 
             const handleJoinGame = async (e) => {
@@ -534,7 +676,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                         uid: user.uid, name: joinName.trim(), vehicleId: 'prius',
                         color: PLAYER_COLORS[colorIndex], joinedAt: Date.now(),
                         bingoBoard: generateBingoBoard(), bingoMarks: [12], plateWins: 0,
-                        raceState: { isActive: false }
+                        pokerHighScore: 0, raceState: { isActive: false }
                     });
                     setActiveTab('home');
                 } catch (err) {}
@@ -646,7 +788,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                     <div className="flex-1 w-full relative pointer-events-none">
                         
                         <main className={`absolute inset-0 overflow-y-auto pointer-events-auto bg-slate-900 flex flex-col ${
-                            (activeTab === 'roadtrip' || activeTab === 'rancher') ? 'hidden' : 'block'
+                            (activeTab === 'roadtrip' || activeTab === 'rancher' || activeTab === 'videopoker') ? 'hidden' : 'block'
                         }`}>
                             
                             {!me && (
@@ -686,6 +828,10 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 <span className="text-3xl mb-2">🤠</span>
                                                 <span className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Play Rancher</span>
                                             </button>
+                                            <button onClick={() => handleTabSwitch('videopoker')} className="bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-xl p-4 flex flex-col items-center transition-transform active:scale-95 shadow-lg">
+                                                <span className="text-3xl mb-2">🎰</span>
+                                                <span className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Play Poker</span>
+                                            </button>
                                             <button onClick={() => handleTabSwitch('bingo')} className="bg-slate-800 hover:bg-slate-700 border-2 border-cyan-500 rounded-xl p-4 flex flex-col items-center transition-transform active:scale-95 shadow-lg">
                                                 <span className="text-3xl mb-2">🎲</span>
                                                 <span className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Play Bingo</span>
@@ -698,7 +844,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                                 <span className="text-3xl mb-2">🏆</span>
                                                 <span className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Leaderboard</span>
                                             </button>
-                                            <button onClick={() => handleTabSwitch('activity')} className="bg-slate-800 hover:bg-slate-700 border-2 border-blue-500 rounded-xl p-4 flex flex-col items-center transition-transform active:scale-95 shadow-lg">
+                                            <button onClick={() => handleTabSwitch('activity')} className="bg-slate-800 hover:bg-slate-700 border-2 border-blue-500 rounded-xl p-4 flex flex-col items-center transition-transform active:scale-95 shadow-lg col-span-2">
                                                 <span className="text-3xl mb-2">📡</span>
                                                 <span className="font-bold text-white text-xs sm:text-sm uppercase tracking-wider">Activity Feed</span>
                                             </button>
@@ -769,6 +915,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                     <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700">
                                         <button onClick={() => setLeaderboardView('plates')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${leaderboardView === 'plates' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}>Plate Hunters</button>
                                         <button onClick={() => setLeaderboardView('rally')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${leaderboardView === 'rally' ? 'bg-cyan-900/50 text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}>Trip Scores</button>
+                                        <button onClick={() => setLeaderboardView('poker')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${leaderboardView === 'poker' ? 'bg-red-900/50 text-red-400' : 'text-slate-400 hover:text-slate-200'}`}>Poker Stars</button>
                                     </div>
                                     {leaderboardView === 'plates' && (
                                         <div className="space-y-3">
@@ -814,6 +961,23 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                                             )}
                                         </div>
                                     )}
+                                    {leaderboardView === 'poker' && (
+                                        <div className="space-y-3">
+                                            {Object.values(players).sort((a, b) => (b.pokerHighScore || 0) - (a.pokerHighScore || 0)).map((player, index) => (
+                                                <div key={player.uid} className="bg-slate-800 rounded-xl p-4 flex items-center justify-between border border-slate-700 relative overflow-hidden">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-2xl w-8 text-center font-bold text-slate-500">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}</div>
+                                                        <div className={`w-12 h-12 rounded-full ${player.color} flex items-center justify-center text-xl font-bold text-white shadow-inner`}>{player.name.charAt(0)}</div>
+                                                        <h3 className="font-bold text-lg text-white">{player.name}</h3>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-2xl font-black text-amber-400">{player.pokerHighScore || 0} <span className="text-[10px] font-normal text-slate-400">pts</span></div>
+                                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Best Payout</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -840,7 +1004,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
                     {/* Anchored Navigation Bar */}
                     {me && (
-                        <nav className="h-16 w-full bg-slate-900 border-t border-slate-800 pb-safe shrink-0 pointer-events-auto flex items-center justify-around z-40 relative shadow-[0_-10px_15px_rgba(0,0,0,0.3)]">
+                        <nav className="h-16 w-full bg-slate-900 border-t border-slate-800 pb-safe shrink-0 pointer-events-auto flex items-center justify-around z-40 relative shadow-[0_-10px_15px_rgba(0,0,0,0.3)] px-1">
                             <button onClick={() => handleTabSwitch('home')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'home' ? 'text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]' : 'text-slate-500 hover:text-slate-300'}`}>
                                 <span className="text-xl mb-1">🏠</span><span className="text-[10px] font-bold tracking-wide">HOME</span>
                             </button>
@@ -855,6 +1019,9 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                             </button>
                             <button onClick={() => handleTabSwitch('rancher')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'rancher' ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]' : 'text-slate-500 hover:text-slate-300'}`}>
                                 <span className="text-2xl mb-1">🤠</span><span className="text-[10px] font-black tracking-widest uppercase">RANCHER</span>
+                            </button>
+                            <button onClick={() => handleTabSwitch('videopoker')} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'videopoker' ? 'text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]' : 'text-slate-500 hover:text-slate-300'}`}>
+                                <span className="text-2xl mb-1">🎰</span><span className="text-[10px] font-black tracking-widest uppercase">POKER</span>
                             </button>
                         </nav>
                     )}
@@ -894,6 +1061,53 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App firebaseModules={window.FirebaseModules} />);
+    </script>
+
+    <!-- ================================================================================= -->
+    <!-- GLOBAL EXTERNAL AUDIO MANAGER                                                     -->
+    <!-- ================================================================================= -->
+    <script>
+        window.GameAudio = {
+            // Updated to use relative local paths to match your previous setup
+            tracks: {
+                rtg2_1: new Audio('roadtrip_radio1.mp3'),
+                rtg2_2: new Audio('roadtrip_radio2.mp3'),
+                rtg2_3: new Audio('roadtrip_radio3.mp3'),
+                rtg3:   new Audio('bg_music.mp3'),
+                rtg4:   new Audio('Velvet_Shuffle.mp3')
+            },
+            activeMusic: null,
+            activeTrackId: null,
+            isMuted: { rtg2: false, rtg3: false, rtg4: false },
+
+            play: function(trackId, gameId) {
+                if (this.activeMusic && this.activeTrackId !== trackId) {
+                    this.activeMusic.pause();
+                }
+                this.activeTrackId = trackId;
+                this.activeMusic = this.tracks[trackId];
+                
+                if (this.activeMusic && !this.isMuted[gameId]) {
+                    this.activeMusic.loop = true;
+                    // Browsers require user interaction before playing audio, so we catch the promise error
+                    this.activeMusic.play().catch(e => console.log("Audio play failed pending user interaction."));
+                }
+            },
+            pauseAll: function() {
+                if (this.activeMusic) {
+                    this.activeMusic.pause();
+                }
+            },
+            toggleMute: function(gameId) {
+                this.isMuted[gameId] = !this.isMuted[gameId];
+                if (this.isMuted[gameId] && this.activeMusic) {
+                    this.activeMusic.pause();
+                } else if (!this.isMuted[gameId] && this.activeMusic) {
+                    this.activeMusic.play().catch(e => {});
+                }
+                return this.isMuted[gameId];
+            }
+        };
     </script>
 
     <!-- ================================================================================= -->
@@ -952,6 +1166,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             const targetDistance = 1000;
             let isPlaying = false;
+            let wasPlayingBeforeTabSwitch = false;
             let animationFrameId;
             let lastTime = 0;
             let crashPhraseIndex = 0;
@@ -960,16 +1175,15 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             let traffic = [], sceneryList = [], clouds = [], bridges = [], roadMarks = [];
             let isGasPressed = false;
             let audioCtxReady = false;
-            let sfxSynth, radioSynth, drumSynth, currentLoop = null;
+            let sfxSynth, drumSynth;
             let preferredVoice = null;
+            let currentRadioChannel = 0;
 
             function initAudio() {
                 if (audioCtxReady) return;
                 Tone.start();
                 sfxSynth = new Tone.PolySynth(Tone.Synth).toDestination();
                 sfxSynth.volume.value = -5;
-                radioSynth = new Tone.Synth({ oscillator: { type: 'square' } }).toDestination();
-                radioSynth.volume.value = -18;
                 drumSynth = new Tone.MembraneSynth().toDestination();
                 drumSynth.volume.value = -15;
                 audioCtxReady = true;
@@ -1014,37 +1228,15 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             }
 
             window.rtg2_playMusic = function(channel) {
-                if (!audioCtxReady) initAudio();
-                if (currentLoop) currentLoop.stop();
-                Tone.Transport.stop();
-                Tone.Transport.cancel();
                 document.querySelectorAll('[id^="rtg2-radio-"]').forEach(btn => btn.classList.remove('bg-purple-600', 'text-white'));
-                if (channel === 0) return;
                 document.getElementById(`rtg2-radio-${channel}`).classList.add('bg-purple-600', 'text-white');
-
-                let notes, drums;
-                if (channel === 1) {
-                    radioSynth.set({ oscillator: { type: 'sawtooth' } }); Tone.Transport.bpm.value = 140;
-                    notes = ['E2','E2','F#2','E2','G2','E2','A2','G#2','E2','E2','F#2','E2','G2','E2','A2','G#2','B3',null,'B3',null,'B3',null,'B3',null,'B3','A3','G3','F#3','E3',null,null,null];
-                    drums = ['C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1','C1','C1',null,'C1','C1','C1',null,'C1',null,'C1',null,'C1',null,'C1',null];
-                } else if (channel === 2) {
-                    radioSynth.set({ oscillator: { type: 'square' } }); Tone.Transport.bpm.value = 130;
-                    notes = ['D4','E4','F#4','A4','B4','A4','F#4','D4','D4','E4','F#4','A4','B4','A4','F#4','D4','D4','E4','F#4','A4','B4','A4','F#4','D4','E4',null,'E4',null,'E4','F#4','G4',null];
-                    drums = ['C1',null,null,null,'C1',null,null,null,'C1',null,null,null,'C1',null,null,null,'C1',null,null,null,'C1',null,null,null,'C1','C1','C1','C1','C1',null,'C1',null];
+                currentRadioChannel = channel;
+                
+                if (channel === 0) {
+                    if (window.GameAudio) window.GameAudio.pauseAll();
                 } else {
-                    radioSynth.set({ oscillator: { type: 'sine' } }); Tone.Transport.bpm.value = 110;
-                    notes = ['D3','D3','D3',null,'G3',null,null,null,'D4',null,null,null,'C4','B3','A3',null,'G4',null,null,null,'D4',null,null,null,'C4','B3','A3',null,'G4',null,null,null,'D4',null,null,null,'C4','B3','C4',null,'A3',null,null,null,null,null,null,null];
-                    drums = ['C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,'C1',null,null,null,null,null,null,null];
+                    if (window.GameAudio) window.GameAudio.play(`rtg2_${channel}`, 'rtg2');
                 }
-
-                let step = 0;
-                currentLoop = new Tone.Loop(time => {
-                    let note = notes[step % notes.length]; let drum = drums[step % drums.length];
-                    if (note) radioSynth.triggerAttackRelease(note, '8n', time);
-                    if (drum) drumSynth.triggerAttackRelease(drum, '8n', time);
-                    step++;
-                }, '16n').start(0);
-                Tone.Transport.start();
             };
 
             function switchLane(dir) {
@@ -1072,11 +1264,28 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 document.getElementById('hunt-items').innerHTML = html;
             }
 
+            window.rtg2_pauseGame = function() {
+                wasPlayingBeforeTabSwitch = isPlaying;
+                isPlaying = false;
+                cancelAnimationFrame(animationFrameId);
+            };
+
+            window.rtg2_resumeGameFromTab = function() {
+                if (wasPlayingBeforeTabSwitch) {
+                    isPlaying = true;
+                    lastTime = performance.now();
+                    animationFrameId = requestAnimationFrame(gameLoop);
+                    if (currentRadioChannel !== 0 && window.GameAudio) {
+                        window.GameAudio.play(`rtg2_${currentRadioChannel}`, 'rtg2');
+                    }
+                }
+            };
+
             window.rtg2_quitGame = function() {
                 if (!isPlaying && document.getElementById('rtg2-start-screen').classList.contains('hidden') === false) return;
                 isPlaying = false; 
-                if (currentLoop) currentLoop.stop(); 
-                Tone.Transport.stop();
+                wasPlayingBeforeTabSwitch = false;
+                if (window.GameAudio) window.GameAudio.pauseAll();
                 cancelAnimationFrame(animationFrameId);
                 
                 document.getElementById('rtg2-start-screen').classList.remove('hidden');
@@ -1092,6 +1301,11 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
                 generateHunt();
                 updateBiome();
                 isPlaying = true;
+                
+                if (currentRadioChannel !== 0 && window.GameAudio) {
+                    window.GameAudio.play(`rtg2_${currentRadioChannel}`, 'rtg2');
+                }
+
                 lastTime = performance.now();
                 animationFrameId = requestAnimationFrame(gameLoop);
             };
@@ -1369,6 +1583,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             function levelUp() {
                 isPlaying = false;
+                if (window.GameAudio) window.GameAudio.pauseAll();
                 let finalTime = parseFloat(state.timeElapsed.toFixed(1)); let isBest = false;
                 if (finalTime < BEST_TIMES[state.level - 1]) { BEST_TIMES[state.level - 1] = finalTime; localStorage.setItem('familyRoadTripBestTimes', JSON.stringify(BEST_TIMES)); isBest = true; }
                 if (state.level === 7) { gameOver("YOU MADE IT TO CALIFORNIA! YOU WIN!", true); return; }
@@ -1390,7 +1605,13 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             window.rtg2_resumeGame = function() {
                 state.level++; state.distance = 0; state.speed = 0; state.timeElapsed = 0; generateHunt();
                 document.getElementById('rtg2-rest-stop').classList.add('hidden'); updateBiome();
-                isPlaying = true; lastTime = performance.now(); requestAnimationFrame(gameLoop);
+                isPlaying = true; 
+                
+                if (currentRadioChannel !== 0 && window.GameAudio) {
+                    window.GameAudio.play(`rtg2_${currentRadioChannel}`, 'rtg2');
+                }
+
+                lastTime = performance.now(); requestAnimationFrame(gameLoop);
             };
 
             window.rtg2_buyItem = function(type) {
@@ -1401,6 +1622,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
 
             function gameOver(reason, isWin = false) {
                 isPlaying = false; if (currentLoop) currentLoop.stop(); Tone.Transport.stop();
+                if (window.GameAudio) window.GameAudio.pauseAll();
                 const crashScreen = document.getElementById('rtg2-crash-screen'); const crashTitle = document.getElementById('crash-title'); const crashReason = document.getElementById('crash-reason'); const restartBtn = document.getElementById('rtg2-restart-btn'); const endStats = document.getElementById('end-stats');
                 if (isWin) { crashScreen.classList.remove('bg-red-900'); crashScreen.classList.add('bg-green-900'); crashTitle.innerText = "ROAD TRIP COMPLETE!"; restartBtn.innerText = "PLAY AGAIN"; restartBtn.classList.replace('text-red-600', 'text-green-600'); } 
                 else { crashScreen.classList.remove('bg-green-900'); crashScreen.classList.add('bg-red-900'); crashTitle.innerText = "GAME OVER"; restartBtn.innerText = "TRY AGAIN"; restartBtn.classList.replace('text-green-600', 'text-red-600'); }
@@ -1451,10 +1673,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             let obstaclesR = [];
             let floatingTextsR = [];
 
-            let isMuted = false;
-            const bgMusicR = new Audio('bg_music.mp3');
-            bgMusicR.loop = true;
-            bgMusicR.volume = 0.3;
+            let wasPlayingBeforeTabSwitchR = false;
 
             const corralR = { x: 0, y: 0, radius: 100, isHovered: false };
             
@@ -1466,15 +1685,9 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             ];
 
             function toggleMute() {
-                isMuted = !isMuted;
+                const isMutedNow = window.GameAudio.toggleMute('rtg3');
                 const muteBtn = document.getElementById('rtg3-btn-mute');
-                if (isMuted) {
-                    bgMusicR.muted = true;
-                    muteBtn.innerText = '🔇';
-                } else {
-                    bgMusicR.muted = false;
-                    muteBtn.innerText = '🔊';
-                }
+                muteBtn.innerText = isMutedNow ? '🔇' : '🔊';
             }
             document.getElementById('rtg3-btn-mute').addEventListener('click', toggleMute);
 
@@ -1488,13 +1701,28 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             }
             window.addEventListener('resize', window.resizeRancher); 
 
+            window.rtg3_pauseGame = function() {
+                wasPlayingBeforeTabSwitchR = (rancherState === 'PLAYING');
+                rancherState = 'PAUSED';
+                cancelAnimationFrame(animationFrameIdR);
+            };
+
+            window.rtg3_resumeGameFromTab = function() {
+                if (wasPlayingBeforeTabSwitchR) {
+                    rancherState = 'PLAYING';
+                    lastTimeR = performance.now();
+                    animationFrameIdR = requestAnimationFrame(rancherLoop);
+                    if (window.GameAudio) window.GameAudio.play('rtg3', 'rtg3');
+                }
+            };
+
             window.rtg3_quitGame = function() {
                 if (rancherState === 'START') return;
                 rancherState = 'START';
+                wasPlayingBeforeTabSwitchR = false;
                 draggedAnimalR = null; 
                 corralR.isHovered = false;
-                bgMusicR.pause();
-                bgMusicR.currentTime = 0;
+                if (window.GameAudio) window.GameAudio.pauseAll();
                 cancelAnimationFrame(animationFrameIdR); 
                 animationFrameIdR = null;
                 Object.values(uiScreensR).forEach(screen => screen.classList.add('hidden'));
@@ -1655,9 +1883,7 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             }
 
             document.getElementById('rtg3-btn-start').addEventListener('click', () => { 
-                if (!isMuted) { 
-                    bgMusicR.play().catch(e => console.log("Audio play failed.", e)); 
-                } 
+                if (window.GameAudio) window.GameAudio.play('rtg3', 'rtg3');
                 rancherLevel = 1; 
                 startRancherLevel(); 
             });
@@ -1666,6 +1892,282 @@ LLM SYSTEM INSTRUCTIONS - CRITICAL RULES
             
             // Wait for elements to attach before initial draw
             setTimeout(() => { if (window.resizeRancher) window.resizeRancher(); ctx.clearRect(0, 0, canvas.width, canvas.height); drawCorral(ctx); }, 100);
+        })();
+
+        // --- RTG4: VIDEO POKER SCRIPT ---
+        (function() {
+            // Full-Pay 9/6 Jacks or Better Payouts (0 index is for zero coins bet)
+            const PAY_TABLE = [
+                { name: 'ROYAL FLUSH', pays: [0, 250, 500, 750, 1000, 4000] },
+                { name: 'STRAIGHT FLUSH', pays: [0, 50, 100, 150, 200, 250] },
+                { name: 'FOUR OF A KIND', pays: [0, 25, 50, 75, 100, 125] },
+                { name: 'FULL HOUSE', pays: [0, 9, 18, 27, 36, 45] },
+                { name: 'FLUSH', pays: [0, 6, 12, 18, 24, 30] },
+                { name: 'STRAIGHT', pays: [0, 4, 8, 12, 16, 20] },
+                { name: 'THREE OF A KIND', pays: [0, 3, 6, 9, 12, 15] },
+                { name: 'TWO PAIR', pays: [0, 2, 4, 6, 8, 10] },
+                { name: 'JACKS OR BETTER', pays: [0, 1, 2, 3, 4, 5] }
+            ];
+
+            let credits = 100;
+            let bet = 5;
+            let gameState = 0; // 0 = Betting/Waiting to Deal, 1 = Waiting to Draw, 2 = Game Over/Payout
+            let deck = [];
+            let hand = [];
+            let heldCards = [false, false, false, false, false];
+
+            let rtg4_audioCtxReady = false;
+            let rtg4_synth;
+
+            function initRtg4Audio() {
+                if (rtg4_audioCtxReady) return;
+                Tone.start();
+                rtg4_synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                rtg4_synth.volume.value = -8;
+                rtg4_audioCtxReady = true;
+            }
+
+            window.rtg4_resumeMusic = function() {
+                if (window.GameAudio) window.GameAudio.play('rtg4', 'rtg4');
+            };
+
+            window.rtg4_quitGame = function() {
+                if (window.GameAudio) window.GameAudio.pauseAll();
+            };
+
+            function initPaytable() {
+                const tbody = document.getElementById('rtg4-paytable-body');
+                let html = '';
+                PAY_TABLE.forEach((row, i) => {
+                    html += `<tr id="rtg4-pay-row-${i}" class="transition-colors duration-200">
+                        <td class="text-left py-0.5">${row.name}</td>
+                        <td class="text-center py-0.5">${row.pays[1]}</td>
+                        <td class="text-center py-0.5">${row.pays[2]}</td>
+                        <td class="text-center py-0.5">${row.pays[3]}</td>
+                        <td class="text-center py-0.5">${row.pays[4]}</td>
+                        <td class="text-center py-0.5 font-bold text-white">${row.pays[5]}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+                updatePaytableHighlight();
+            }
+
+            function updatePaytableHighlight() {
+                for(let c = 1; c <= 5; c++) {
+                    const colHead = document.getElementById(`rtg4-col-${c}`);
+                    if(colHead) colHead.classList.toggle('bg-red-600', c === bet);
+                }
+                PAY_TABLE.forEach((row, rIdx) => {
+                    const tr = document.getElementById(`rtg4-pay-row-${rIdx}`);
+                    if(!tr) return;
+                    for (let c = 1; c <= 5; c++) {
+                        const td = tr.children[c];
+                        if (c === bet) {
+                            td.classList.add('bg-red-600', 'text-white');
+                            td.classList.remove('text-blue-300');
+                        } else {
+                            td.classList.remove('bg-red-600', 'text-white');
+                            if (c !== 5) td.classList.add('text-blue-300'); // column 5 is always white unless active
+                        }
+                    }
+                });
+                document.getElementById('rtg4-bet').innerText = bet;
+                document.getElementById('rtg4-credits').innerText = credits;
+            }
+
+            function generateDeck() {
+                const suits = ['♥', '♦', '♣', '♠'];
+                const values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+                const names = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+                let newDeck = [];
+                for (let s of suits) {
+                    for (let i = 0; i < values.length; i++) {
+                        newDeck.push({
+                            suit: s,
+                            value: values[i],
+                            name: names[i],
+                            color: (s === '♥' || s === '♦') ? 'text-red-600' : 'text-black'
+                        });
+                    }
+                }
+                return newDeck.sort(() => Math.random() - 0.5); // simple shuffle
+            }
+
+            function renderCards() {
+                for (let i = 0; i < 5; i++) {
+                    const cardEl = document.getElementById(`rtg4-card-${i}`);
+                    if (gameState === 0 && hand.length === 0) {
+                        // Showing backs before initial deal
+                        cardEl.className = 'poker-card back';
+                        cardEl.innerHTML = '';
+                    } else {
+                        const c = hand[i];
+                        if (c) {
+                            cardEl.className = `poker-card ${heldCards[i] ? 'held' : ''} ${c.color}`;
+                            cardEl.innerHTML = `
+                                <div class="poker-held-tag">HELD</div>
+                                <div class="text-xs sm:text-lg font-bold leading-none">${c.name}<br/>${c.suit}</div>
+                                <div class="text-2xl sm:text-5xl self-center font-bold absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-20">${c.suit}</div>
+                                <div class="text-xs sm:text-lg font-bold leading-none self-end rotate-180">${c.name}<br/>${c.suit}</div>
+                            `;
+                        }
+                    }
+                }
+            }
+
+            function evaluateHand(cards) {
+                let vals = cards.map(c => c.value).sort((a, b) => a - b);
+                let suits = cards.map(c => c.suit);
+                
+                let isFlush = suits.every(s => s === suits[0]);
+                
+                let isStraight = false;
+                let uniqueVals = [...new Set(vals)];
+                if (uniqueVals.length === 5) {
+                    if (vals[4] - vals[0] === 4) isStraight = true;
+                    // Check special Ace-low straight (14, 2, 3, 4, 5)
+                    if (vals[0] === 2 && vals[1] === 3 && vals[2] === 4 && vals[3] === 5 && vals[4] === 14) isStraight = true;
+                }
+                
+                let counts = {};
+                vals.forEach(v => counts[v] = (counts[v] || 0) + 1);
+                let countVals = Object.values(counts).sort((a, b) => b - a);
+                
+                if (isFlush && isStraight) {
+                    if (vals.includes(14) && vals.includes(13)) return 'ROYAL FLUSH';
+                    return 'STRAIGHT FLUSH';
+                }
+                if (countVals[0] === 4) return 'FOUR OF A KIND';
+                if (countVals[0] === 3 && countVals[1] === 2) return 'FULL HOUSE';
+                if (isFlush) return 'FLUSH';
+                if (isStraight) return 'STRAIGHT';
+                if (countVals[0] === 3) return 'THREE OF A KIND';
+                if (countVals[0] === 2 && countVals[1] === 2) return 'TWO PAIR';
+                
+                if (countVals[0] === 2) {
+                    let pairVal = Object.keys(counts).find(key => counts[key] === 2);
+                    if (parseInt(pairVal) >= 11) return 'JACKS OR BETTER';
+                }
+                return null;
+            }
+
+            function setWinMessage(msg) {
+                document.getElementById('rtg4-win-message').innerText = msg;
+            }
+
+            window.rtg4_betOne = function() {
+                initRtg4Audio();
+                if (gameState !== 0) return;
+                bet = bet >= 5 ? 1 : bet + 1;
+                updatePaytableHighlight();
+                if (rtg4_synth) rtg4_synth.triggerAttackRelease("C5", "32n", Tone.now());
+            };
+
+            window.rtg4_betMax = function() {
+                initRtg4Audio();
+                if (gameState !== 0) return;
+                bet = 5;
+                updatePaytableHighlight();
+                if (rtg4_synth) rtg4_synth.triggerAttackRelease("E5", "32n", Tone.now());
+                window.rtg4_deal();
+            };
+
+            window.rtg4_toggleHold = function(index) {
+                initRtg4Audio();
+                if (gameState !== 1) return;
+                heldCards[index] = !heldCards[index];
+                renderCards();
+                if (rtg4_synth) rtg4_synth.triggerAttackRelease(heldCards[index] ? "E4" : "C4", "32n", Tone.now());
+            };
+
+            window.rtg4_deal = function() {
+                initRtg4Audio();
+                
+                // Ensure external poker music is playing when action starts
+                if (window.GameAudio) window.GameAudio.play('rtg4', 'rtg4');
+
+                const btnDeal = document.getElementById('rtg4-btn-deal');
+                
+                if (gameState === 0) {
+                    // Deal new hand
+                    if (credits < bet) { setWinMessage("NOT ENOUGH CREDITS"); return; }
+                    credits -= bet;
+                    deck = generateDeck();
+                    hand = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+                    heldCards = [false, false, false, false, false];
+                    gameState = 1;
+                    setWinMessage("");
+                    updatePaytableHighlight();
+                    renderCards();
+                    btnDeal.innerText = 'DRAW';
+
+                    if (rtg4_synth) {
+                        const now = Tone.now();
+                        rtg4_synth.triggerAttackRelease("C4", "32n", now);
+                        rtg4_synth.triggerAttackRelease("D4", "32n", now + 0.05);
+                        rtg4_synth.triggerAttackRelease("E4", "32n", now + 0.1);
+                        rtg4_synth.triggerAttackRelease("F4", "32n", now + 0.15);
+                        rtg4_synth.triggerAttackRelease("G4", "32n", now + 0.2);
+                    }
+                } 
+                else if (gameState === 1) {
+                    // Draw replacements
+                    let drawnCount = 0;
+                    if (rtg4_synth) {
+                        const now = Tone.now();
+                        for (let i = 0; i < 5; i++) {
+                            if (!heldCards[i]) {
+                                rtg4_synth.triggerAttackRelease("G4", "32n", now + (drawnCount * 0.05));
+                                drawnCount++;
+                            }
+                        }
+                    }
+
+                    for (let i = 0; i < 5; i++) {
+                        if (!heldCards[i]) {
+                            hand[i] = deck.pop();
+                        }
+                    }
+                    renderCards();
+                    
+                    // Evaluate
+                    const result = evaluateHand(hand);
+                    if (result) {
+                        const payRow = PAY_TABLE.find(r => r.name === result);
+                        const winAmount = payRow.pays[bet];
+                        credits += winAmount;
+                        setWinMessage(`${result}! WON ${winAmount}`);
+                        
+                        if (rtg4_synth) {
+                            const now = Tone.now();
+                            const winDelay = drawnCount * 0.05 + 0.2;
+                            rtg4_synth.triggerAttackRelease("C5", "16n", now + winDelay);
+                            rtg4_synth.triggerAttackRelease("E5", "16n", now + winDelay + 0.1);
+                            rtg4_synth.triggerAttackRelease("G5", "16n", now + winDelay + 0.2);
+                            rtg4_synth.triggerAttackRelease("C6", "4n", now + winDelay + 0.3);
+                        }
+
+                        // Report to Leaderboard if global function exists
+                        if (window.rtg4_updateScore) {
+                            window.rtg4_updateScore(winAmount);
+                        }
+                    } else {
+                        setWinMessage("GAME OVER");
+                        if (rtg4_synth) {
+                            const now = Tone.now();
+                            const loseDelay = drawnCount * 0.05 + 0.2;
+                            rtg4_synth.triggerAttackRelease("G3", "8n", now + loseDelay);
+                        }
+                    }
+                    
+                    updatePaytableHighlight();
+                    gameState = 0;
+                    btnDeal.innerText = 'DEAL';
+                }
+            };
+
+            // Init
+            initPaytable();
         })();
     </script>
 </body>
